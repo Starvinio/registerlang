@@ -1,0 +1,20 @@
+ToDo:
+- Add basic arithmetic tokens 
+- Add an arithmetic scanner
+
+Resources:
+
+Crafting Interpreters Book
+    https://craftinginterpreters.com/contents.html
+
+Annotated Lua 5.3 VM notes
+    https://poga.github.io/lua53-notes/bytecode.html
+
+Lua 5.2 source code
+    https://www.lua.org/source/5.2/
+
+Lua bytecode explanation
+    https://luaf.dev/pages/virtualmachine.html
+
+claude convo:
+    https://claude.ai/chat/f6fa98f3-20ed-458a-b110-7457d2e3d0ff
