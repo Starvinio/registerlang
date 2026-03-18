@@ -1,6 +1,8 @@
 ToDo:
-- Add basic arithmetic tokens 
 - Add an arithmetic scanner
+- Add compilation for the scanner
+- Connect scanner and compiler to vm
+- Be able to run shit like (2 + 3 == 5) == true
 
 Resources:
 

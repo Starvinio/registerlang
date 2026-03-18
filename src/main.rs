@@ -1,37 +1,80 @@
-use registerlang::{Chunk, *};
+use std::{env, fs, io::{self, Write}, process};
+
+use registerlang::{Compiler, LangError, VM};
 
 fn main() {
-    let mut chunk = Chunk::init();
+    let argv:Vec<String> = env::args().collect();
+    println!("argv: {:?}", argv);
 
-    let a = chunk.add_constant(Value::Num(1.0));
-    let b = chunk.add_constant(Value::Num(2.0));
-    let c = chunk.add_constant(Value::Num(3.0));
-    let x = chunk.add_constant(Value::Bool(true));
+    // Initialize VM
+    // Will persist from program start to finish
+    let mut vm = VM::init();
 
-    chunk.add_instruction(Instruction::make_xy(OpCode::Load as u8, 0, a), 1);
-    chunk.add_instruction(Instruction::make_xy(OpCode::Load as u8, 1, b), 1);
-    chunk.add_instruction(Instruction::make_xy(OpCode::Load as u8, 2, c), 1);
-    chunk.add_instruction(Instruction::make_xy(OpCode::Load as u8, 5, x), 1);
+    match {
+        if argv.len() == 1 {
+            run_repl(&mut vm)
+        } else if argv.len() == 2 {
+            run_file(&argv[1], &mut vm)
+        } else {
+            print_usage();
+            std::process::exit(64);
+        }
+    } {
+        Ok(_) => println!("Exited successfully"),
+        Err(e) => {
+            eprintln!("{e}");
+            match e {
+                LangError::CompileError {..} => process::exit(65),
+                LangError::RuntimeError {..} => process::exit(70)
+            }
+        }
 
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Add as u8, 0, 0, 1), 2);
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Mul as u8, 1, 0, 2), 3);
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Div as u8, 3, 1, 0), 4);
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Equal as u8, 4, 0, 2), 6);
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Equal as u8, 5, 5, 1), 6);
-    chunk.add_instruction(Instruction::make_xyz(OpCode::Return as u8, 3, 0, 0), 99);
-
-    let mut vm = VM::init(chunk, 6);
-    vm.print_instructions();
-    let res = vm.interpret();
-    match res {
-        Err(e) => eprintln!("{e}"),
-        _ => println!("Exited successfully")
     }
-    
-    println!("Size of Instruction is {}", size_of::<Instruction>());
-    println!("Size of Opcode is {}", size_of::<OpCode>());
-    println!("Size of Value is {}", size_of::<Value>());
-    println!("Size of Chunk is {}", size_of::<Chunk>());
-    assert!(size_of::<Instruction>() == 4);
-    return; 
+}
+
+fn run_repl(vm: &mut VM) -> Result<(), LangError> {
+    println!("REPL Mode: Press ^D to Escape");
+    loop {
+        print!("> ");
+        io::stdout().flush().unwrap();
+        let mut line = String::new();
+        let line_res = match io::stdin().read_line(&mut line) {
+            Ok(_) => {
+                if line.len() == 0 {return Ok(())}
+                run(line, vm)
+            }
+            Err(e) => {
+                eprintln!("Error: could not read line: {e}");
+                continue;
+            }
+        };
+        match line_res {
+            Ok(_) => continue,
+            Err(e) => eprintln!("{e}")
+        }
+    }
+}
+
+fn run_file(src: &str, vm: &mut VM) -> Result<(), LangError> {
+    let content = match fs::read_to_string(&src) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error: could not read file '{src}': {e}");
+            std::process::exit(1);
+        }
+    };
+    run(content, vm)
+}
+
+fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
+    println!("{content}");
+    let chunk = Compiler::init().compile(content)?;
+    vm.interpret(&chunk);
+    Ok(())
+}
+
+fn print_usage() {
+    eprintln!("Usage:\n
+        <lang-bin> <file path>\t| Run code from file\n
+        <lang-bin>\t\t| Run REPL mode");
 }
