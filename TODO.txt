@@ -1,5 +1,8 @@
 ToDo:
+- Change Chunk to store src indices for line information
 - Add an arithmetic scanner
+    > Base Token Lexing
+    > Token Stores current ptr
 - Add compilation for the scanner
 - Connect scanner and compiler to vm
 - Be able to run shit like (2 + 3 == 5) == true

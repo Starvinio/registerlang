@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Chunk, LangError, OpCode, Value};
+use crate::{Chunk, LangError, ErrorType, OpCode, Value};
 const MAX_REGISTERS: usize = 256; 
 
 pub struct VM {
@@ -144,14 +144,10 @@ impl VM {
         Ok(())
     }
 
-    fn err_from_str(&self, chunk: &Chunk, msg: &str) -> LangError {
-        LangError::RuntimeError { line: chunk.get_line(self.ip), msg: msg.to_string() } 
+    fn err_from_str(&self, ptr: u32, msg: &str) -> LangError {
+        LangError::runtime(ptr, msg.to_string())
     }
-    fn err_from_string(&self, chunk: &Chunk, msg: String) -> LangError {
-        LangError::RuntimeError { line: chunk.get_line(self.ip), msg } 
+    fn err_from_string(&self, ptr: u32, msg: String) -> LangError {
+        LangError::runtime(ptr, msg)
     }
-
-    
-
-    
 }

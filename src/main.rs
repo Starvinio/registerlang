@@ -10,29 +10,18 @@ fn main() {
     // Will persist from program start to finish
     let mut vm = VM::init();
 
-    match {
-        if argv.len() == 1 {
-            run_repl(&mut vm)
-        } else if argv.len() == 2 {
-            run_file(&argv[1], &mut vm)
-        } else {
+    match argv.len() {
+        1 => run_repl(&mut vm),
+        2 => run_file(&argv[1], &mut vm),
+        _ => {
             print_usage();
-            std::process::exit(64);
+            process::exit(64);
         }
-    } {
-        Ok(_) => println!("Exited successfully"),
-        Err(e) => {
-            eprintln!("{e}");
-            match e {
-                LangError::CompileError {..} => process::exit(65),
-                LangError::RuntimeError {..} => process::exit(70)
-            }
-        }
-
     }
+    process::exit(0);
 }
 
-fn run_repl(vm: &mut VM) -> Result<(), LangError> {
+fn run_repl(vm: &mut VM) {
     println!("REPL Mode: Press ^D to Escape");
     loop {
         print!("> ");
@@ -40,30 +29,38 @@ fn run_repl(vm: &mut VM) -> Result<(), LangError> {
         let mut line = String::new();
         let line_res = match io::stdin().read_line(&mut line) {
             Ok(_) => {
-                if line.len() == 0 {return Ok(())}
+                // Check for ^D Press
+                if line.len() == 0 {return}
+
                 run(line, vm)
             }
             Err(e) => {
                 eprintln!("Error: could not read line: {e}");
-                continue;
+                process::exit(74);
             }
         };
         match line_res {
             Ok(_) => continue,
-            Err(e) => eprintln!("{e}")
+            Err(e) => e.print_error(&line),
         }
     }
 }
 
-fn run_file(src: &str, vm: &mut VM) -> Result<(), LangError> {
+fn run_file(src: &str, vm: &mut VM) {
     let content = match fs::read_to_string(&src) {
         Ok(s) => s,
         Err(e) => {
             eprintln!("Error: could not read file '{src}': {e}");
-            std::process::exit(1);
+            process::exit(66);
         }
     };
-    run(content, vm)
+    match run(content, vm) {
+        Ok(_) => return,
+        Err(e) => {
+            e.print_error(src);
+            process::exit(e.exit_code());
+        }
+    }
 }
 
 fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
