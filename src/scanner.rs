@@ -39,16 +39,30 @@ impl Scanner {
         return self.src.as_bytes()[self.ptr-1]
     } 
 
+    /// Shortcut function to determine if given byte is a digit
+    fn is_digit(&self, char:u8) -> bool {
+        matches!(char, b'0'..=b'9') 
+    }
+
     /// Consumes and concatenates digits and ',' starting from [`start_ptr`]
     /// And returns [`LangToken`] with type [`TokenType::Num`]
     ///
     /// Returns [`LangError`] if invalid Syntax
-    fn number(&mut self, start_ptr: usize) -> LangToken {
-        while matches!(self.src.as_bytes()[self.ptr], b'0'..=b'9') {
-            
+    fn number(&mut self, start_ptr: usize) -> Result<LangToken, LangError> {
+
+        // All digits before '.'
+        while self.is_digit(self.peek()) {
+            self.advance();
         }
 
-        LangToken { ttype: TokenType::Num(1.0), tptr: start_ptr as u32 }
+        if matches!(self.peek(), b'.') && self.is_digit(self.peek_next()) {
+            self.advance();
+            // All digits after '.'
+            while matches!(self.src.as_bytes()[self.ptr], b'0'..=b'9') {
+                self.advance();
+            }
+        }
+        Ok(LangToken { ttype: TokenType::Num, tptr: start_ptr as u32 })
     }
 
     /// Emits the next [`LangToken`] from the input stream.
@@ -66,29 +80,43 @@ impl Scanner {
     pub fn emit_token(&mut self) -> Result<LangToken, LangError> {
         self.skip_whitespace();
 
+        // End of file reached, output EOF
         if self.is_at_end() {return Ok(self.make_token(TokenType::EOF))} 
         
         let c = self.advance();
         let res = match c {
-            b'0'..=b'9' => self.number(self.ptr-1),
+            // Numbers
+            b'0'..=b'9' => return self.number(self.ptr-1),
+
+            // Arithmetic operators
             b'+' => self.make_token(TokenType::Plus),
             b'-' => self.make_token(TokenType::Minus),
             b'*' => self.make_token(TokenType::Star),
             b'/' => self.make_token(TokenType::Slash),
-            b'<' => self.make_token(TokenType::Lthen),
-            b'>' => self.make_token(TokenType::Gthen),
+
+            // Boolean Operators
+            b'!' => self.two_char_token('=', TokenType::BangEq, TokenType::Bang),
+            b'<' => self.two_char_token('=', TokenType::Lthen, TokenType::LthenEq),
+            b'>' => self.two_char_token('=', TokenType::Gthen, TokenType::GthenEq),
+            b'=' => self.two_char_token('=', TokenType::EqEq, TokenType::Eq),
+
+            // Grouping
             b'(' => self.make_token(TokenType::LParen),
             b')' => self.make_token(TokenType::RParen),
-            b'=' => {
-                if self.match_current('=') {
-                    self.make_token(TokenType::EqEquals)
-                } else {
-                    self.make_token(TokenType::Equals)
-                }
-            }
-            t => return Err(LangError::compile(self.ptr as u32, format!("Unexpected Token: '{}'", t as char)))
+            t => return Err(LangError::compile(self.ptr as u32, format!("Invalid character: '{}'", t as char)))
         };
         return Ok(res)
+    }
+
+    /// Utility function used to ouput either a or b
+    /// Depending on whether the next character matches the expected
+    fn two_char_token(&mut self, expected: char, matched:TokenType, single:TokenType) -> LangToken {
+        if self.match_current(expected) {
+            self.make_token(matched)
+        } else {
+            self.make_token(single)
+        }
+
     }
 
     /// Outputs a LangToken with type of ttype param.
@@ -137,7 +165,8 @@ impl Scanner {
         loop {
             let c = self.peek();
             match c {
-                b'\n' | b'\r' => todo!("Add sum farkin newline detector"),
+                // Might need to add NL Output soon
+                b'\n' | b'\r' => self.ptr+=1,
                 // \xOB -> Vertical Tab \xOC -> Form Feed
                 b' ' | b'\t' | b'\x0B' | b'\x0C' => self.ptr+=1,
                 _ => return

@@ -7,7 +7,11 @@ pub struct LangToken {
     /// byte offset of token start in source string
     pub tptr: u32,
 }
+
+/// Stores only the type of the token as a single byte
+/// Token Data (number, booleans, strings) are parsed from src ptr
 pub enum TokenType {
+
     //  === Arithmetic Operators ===
     
     /// +
@@ -25,17 +29,30 @@ pub enum TokenType {
 
     // === Boolean Operators === 
 
+    /// !
+    Bang,
+
+    /// !=
+    BangEq,
+
     /// =
-    Equals,
+    Eq,
 
     /// ==
-    EqEquals, 
+    EqEq, 
 
     /// <
     Lthen, 
 
+    /// <=
+    LthenEq,
+
     /// >
-    Gthen, 
+    Gthen,
+
+    /// >=
+    GthenEq,
+
 
     // === Grouping === 
 
@@ -45,19 +62,31 @@ pub enum TokenType {
     // )
     RParen,
 
+
     // === Literals === 
 
-    /// Num literal (stored as 'f32')
-    Num(f32), 
+    /// Num literal
+    /// Value is parsed by compiler
+    Num, 
 
-    /// Boolean literal (native bool)
-    Bool(bool), 
+    /// Boolean 'true'
+    True, 
+
+    /// Boolean 'false'
+    False,
 
     /// Nil / null value 
-    /// Equals to 'false' on bool checks
+    /// Equals to 'false' on boolean checks
     NIL,  
+
+
+    // === Markers === 
 
     /// End of file marker
     EOF,
+
+    /// Newline Marker
+    /// Produced by both '\n' and '\r'
+    NL,
 }
 

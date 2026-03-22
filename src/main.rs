@@ -1,8 +1,10 @@
 use std::{env, fs, io::{self, Write}, process};
 
-use registerlang::{Compiler, LangError, VM};
+use registerlang::{Compiler, LangError, LangToken, TokenType, VM};
 
 fn main() {
+    println!("Size of LangToken is {}", size_of::<LangToken>());
+    println!("Size of TokenType is {}", size_of::<TokenType>());
     let argv:Vec<String> = env::args().collect();
     println!("argv: {:?}", argv);
 
