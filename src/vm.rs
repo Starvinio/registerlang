@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Chunk, LangError, ErrorType, OpCode, Value};
+use crate::{Chunk, LangError, OpCode, Value};
 const MAX_REGISTERS: usize = 256; 
 
 pub struct VM {
@@ -38,13 +38,13 @@ impl VM {
             Ok(OpCode::Lthen)=> self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Gthen)=> self.gthen(chunk, instr.x(), instr.y(), instr.z())?,
 
-            Err(b) => return Err(self.err_from_string(chunk, format!("Invalid OpCode: {}", b)))
+            Err(b) => return Err(self.err_from_string(chunk.get_line(self.ip), format!("Invalid OpCode: {}", b)))
         };
         return Ok(res)
 
     }
 
-    fn print_instructions(&self, chunk: &Chunk) {
+    pub fn print_instructions(&self, chunk: &Chunk) {
         println!("========= INSTRUCTIONS ==========");
         let mut last_line = None;
 
@@ -69,7 +69,7 @@ impl VM {
             self.registers[dest as usize] = chunk.constants[idx as usize].clone();
             Ok(())
         } else {
-            Err(self.err_from_str(chunk, "Register Overflow"))
+            Err(self.err_from_str(chunk.get_line(self.ip), "Register Overflow"))
         }
     }
     fn add(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
@@ -78,7 +78,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk, s))
+            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
         }
         Ok(())
     }
@@ -88,7 +88,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk, s))
+            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
         }
         Ok(())
     }
@@ -98,7 +98,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk, s))
+            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
         }
         Ok(())
     }
@@ -108,7 +108,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk, s))
+            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
         }
         Ok(())
     }
@@ -119,7 +119,7 @@ impl VM {
             (Value::Num(i), Value::Num(j)) => i == j,
             (Value::Bool(i), Value::Bool(j)) => i == j,
             (Value::None, Value::Bool(i)) | (Value::Bool(i), Value::None) => { i == false },
-            _ => return Err(self.err_from_str(chunk, "Invalid '==' comparison"))
+            _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '==' comparison"))
 
         };
         self.registers[dest as usize] = Value::Bool(res_bool);
@@ -129,7 +129,7 @@ impl VM {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i < j,
-                _ => return Err(self.err_from_str(chunk, "Invalid '<' comparison"))
+                _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '<' comparison"))
             }
         );
         Ok(())
@@ -138,7 +138,7 @@ impl VM {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i > j,
-                _ => return Err(self.err_from_str(chunk, "Invalid '>' comparison"))
+                _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '>' comparison"))
             }
         );
         Ok(())

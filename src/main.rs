@@ -9,7 +9,6 @@ fn main() {
     // Initialize VM
     // Will persist from program start to finish
     let mut vm = VM::init();
-
     match argv.len() {
         1 => run_repl(&mut vm),
         2 => run_file(&argv[1], &mut vm),
@@ -32,7 +31,7 @@ fn run_repl(vm: &mut VM) {
                 // Check for ^D Press
                 if line.len() == 0 {return}
 
-                run(line, vm)
+                run(line.clone(), vm)
             }
             Err(e) => {
                 eprintln!("Error: could not read line: {e}");
@@ -66,8 +65,7 @@ fn run_file(src: &str, vm: &mut VM) {
 fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
     println!("{content}");
     let chunk = Compiler::init().compile(content)?;
-    vm.interpret(&chunk);
-    Ok(())
+    return vm.interpret(&chunk);
 }
 
 fn print_usage() {

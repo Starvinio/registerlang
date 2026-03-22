@@ -4,14 +4,14 @@ use crate::{Value, Instruction};
 pub struct Chunk {
     pub instructions: Vec<Instruction>, // OpCodes + Register Indices
     pub constants: Vec<Value>, // Values loaded from source
-    pub lines: Vec<(u32, u8)>, // line, occurences
+    pub src_pos: Vec<u32>, // line, occurences
 }
 impl Chunk {
     pub fn init() -> Self {
         Self {
             instructions: Vec::new(),
             constants: Vec::new(),
-            lines: Vec::new(),
+            src_pos: Vec::new(),
         }
     }
 
@@ -21,30 +21,14 @@ impl Chunk {
         self.constants.push(constant);
         return ( self.constants.len() - 1 ) as u16
     }
-    pub fn add_instruction(&mut self, instruction: Instruction, line: u32) {
+    pub fn add_instruction(&mut self, instruction: Instruction, pos: u32) {
         self.instructions.push(instruction);
-        self.add_line(line);        
-    }
-    fn add_line(&mut self, line: u32) {
-        match self.lines.last_mut() {
-            Some((last_line, occurences)) if *last_line == line => {
-                *occurences += 1;
-            }
-            _ => self.lines.push((line, 1))
-        }
+        self.src_pos.push(pos);
     }
     pub fn get_line(&self, instr_indx: usize) -> u32 {
-        let mut i = 0;
-        let mut count = 0;
-        while i < self.lines.len() {
-            let current = self.lines[i];
-            count += current.1 as usize;
-            if count >= instr_indx + 1 {
-                return current.0 as u32;
-            }
-            i += 1
+        match self.src_pos.get(instr_indx) {
+            Some(line) => return *line,
+            None => return 0
         }
-
-        return 0;
     }
 }
