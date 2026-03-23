@@ -1,5 +1,5 @@
-
 /// A single token produced by [`Scanner`]
+#[derive(Debug)]
 pub struct LangToken {
     /// the type/category of this token
     pub ttype: TokenType,
@@ -10,56 +10,57 @@ pub struct LangToken {
 
 /// Stores only the type of the token as a single byte
 /// Token Data (number, booleans, strings) are parsed from src ptr
+#[derive(Debug)]
 pub enum TokenType {
 
     //  === Arithmetic Operators ===
     
-    /// +
+    /// `+`
     Plus, 
 
-    /// -
+    /// `-`
     Minus,
 
-    /// *
+    /// `*`
     Star,
 
-    /// /
+    /// `/`
     Slash, 
           
 
     // === Boolean Operators === 
 
-    /// !
+    /// `!`
     Bang,
 
-    /// !=
+    /// `!=`
     BangEq,
 
-    /// =
+    /// `=`
     Eq,
 
-    /// ==
+    /// `==`
     EqEq, 
 
-    /// <
+    /// `<`
     Lthen, 
 
-    /// <=
+    /// `<=`
     LthenEq,
 
-    /// >
+    /// `>`
     Gthen,
 
-    /// >=
+    /// `>=`
     GthenEq,
 
 
     // === Grouping === 
 
-    /// (
+    /// `(` 
     LParen,
 
-    // )
+    /// `)`
     RParen,
 
 

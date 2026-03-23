@@ -1,12 +1,11 @@
 use std::{env, fs, io::{self, Write}, process};
 
-use registerlang::{Compiler, LangError, LangToken, TokenType, VM};
+use registerlang::{Compiler, LangError, VM};
 
-fn main() {
-    println!("Size of LangToken is {}", size_of::<LangToken>());
-    println!("Size of TokenType is {}", size_of::<TokenType>());
+/// Main entry point collects arguments
+/// and runs program accordingly
+fn main() { 
     let argv:Vec<String> = env::args().collect();
-    println!("argv: {:?}", argv);
 
     // Initialize VM
     // Will persist from program start to finish
@@ -31,7 +30,7 @@ fn run_repl(vm: &mut VM) {
         let line_res = match io::stdin().read_line(&mut line) {
             Ok(_) => {
                 // Check for ^D Press
-                if line.len() == 0 {return}
+                if line.len() == 0 {println!(); return}
 
                 run(line.clone(), vm)
             }
@@ -64,10 +63,10 @@ fn run_file(src: &str, vm: &mut VM) {
     }
 }
 
-fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
-    println!("{content}");
-    let chunk = Compiler::init().compile(content)?;
-    return vm.interpret(&chunk);
+fn run(content:String, _vm:&mut VM) -> Result<(), LangError> {
+    Compiler::init().compile(content)?;
+    return Ok(());
+    //return vm.interpret(&chunk);
 }
 
 fn print_usage() {

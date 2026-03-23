@@ -1,4 +1,4 @@
-use crate::{Scanner, LangError, Chunk};
+use crate::{Lexer, LangError, Chunk};
 pub struct Compiler {
 
 }
@@ -7,8 +7,9 @@ impl Compiler {
         Self {}
     }
     pub fn compile(&mut self, source: String) -> Result<Chunk, LangError> {
-        let mut scanner = Scanner::init(source.into_boxed_str());
-        // let tokens = scanner.emit_token()?;
+        let mut lexer = Lexer::init(source.into_boxed_str());
+        let tokens = lexer.token_stream()?;
+        println!("{:#?}", tokens);
 
         // DEBUG ONLY
         Ok(Chunk::init())

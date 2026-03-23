@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use crate::{Chunk, LangError, OpCode, Value};
+
+/// Current upper bound for registers
+/// due to storing dest as single byte
 const MAX_REGISTERS: usize = 256; 
 
 pub struct VM {
     registers: Vec<Value>,
     _globals: HashMap<String, Value>,
-    ip: usize, // Instruction pointer
+    ip: usize, // [I]nstruction [P]ointer
 }
 
 impl VM {

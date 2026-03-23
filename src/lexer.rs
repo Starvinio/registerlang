@@ -1,6 +1,6 @@
 use crate::{LangError, LangToken, TokenType};
 
-/// Byte-based lexical scanner
+/// Byte-based lexer
 /// 
 /// Consumes a source string and produces a stream
 /// of [`LangToken`] via [`emit_token`](Self::emit_token)
@@ -9,7 +9,7 @@ use crate::{LangError, LangToken, TokenType};
 /// - Operates on raw bytes for performance
 /// - Assumes ASCII-oriented output
 /// - Does not handle unicode
-pub struct Scanner {
+pub struct Lexer {
 
     /// Source code being scanned
     /// Stored as [`Box<>`] to:
@@ -22,7 +22,7 @@ pub struct Scanner {
     ptr: usize
 }
 
-impl Scanner {
+impl Lexer {
 
     /// Init that loads [`Box<str>`] into [`src`](Self::src) 
     /// and initializes ['ptr'](Self::ptr) to 0
@@ -51,11 +51,14 @@ impl Scanner {
     fn number(&mut self, start_ptr: usize) -> Result<LangToken, LangError> {
 
         // All digits before '.'
-        while self.is_digit(self.peek()) {
+        while let Some(c) = self.peek() {
+            if !self.is_digit(c) {
+                break
+            }
             self.advance();
         }
 
-        if matches!(self.peek(), b'.') && self.is_digit(self.peek_next()) {
+        if matches!(self.peek(), Some(b'.')) && matches!(self.peek_next(), Some(c) if self.is_digit(c)) {
             self.advance();
             // All digits after '.'
             while matches!(self.src.as_bytes()[self.ptr], b'0'..=b'9') {
@@ -75,7 +78,7 @@ impl Scanner {
     ///
     /// Returns [`LangError`] if an unexpected byte is encountered.
     ///
-    /// Since the scanner operates on raw `u8` bytes (ASCII-oriented),
+    /// Since the lexer operates on raw `u8` bytes (ASCII-oriented),
     /// any unsupported or non-ASCII input will result in an error.
     pub fn emit_token(&mut self) -> Result<LangToken, LangError> {
         self.skip_whitespace();
@@ -108,6 +111,14 @@ impl Scanner {
         return Ok(res)
     }
 
+    pub fn token_stream(&mut self) -> Result<Vec<LangToken>, LangError> {
+        let mut tokens = Vec::new();
+        while self.ptr < self.src.len() && !self.is_at_end() {
+            tokens.push(self.emit_token()?)
+        }
+        Ok(tokens)
+    }
+
     /// Utility function used to ouput either a or b
     /// Depending on whether the next character matches the expected
     fn two_char_token(&mut self, expected: char, matched:TokenType, single:TokenType) -> LangToken {
@@ -120,14 +131,16 @@ impl Scanner {
     }
 
     /// Outputs a LangToken with type of ttype param.
-    /// Token source pointer is inferred via Scanner.ptr
+    /// Token source pointer is inferred via Lexer.ptr
     fn make_token(&self, ttype: TokenType) -> LangToken {
-        LangToken { ttype, tptr: self.ptr as u32 }
+        // We subtract from ptr because it will already
+        // be on the next token
+        LangToken { ttype, tptr: (self.ptr-1) as u32 }
     }
     
     /// returns true if current is EOF char
     fn is_at_end(&self) -> bool {
-        return self.src.as_bytes()[self.ptr] == b'\0'
+        return self.ptr+1 > self.src.len() || self.src.as_bytes()[self.ptr] == b'\0'
     }
     
     /// Outputs true and advances only if current char matches expected
@@ -141,13 +154,13 @@ impl Scanner {
     }
 
     /// Returns u8 char of current pointer position
-    fn peek(&self) -> u8 {
-        return self.src.as_bytes()[self.ptr]
+    fn peek(&self) -> Option<u8> {
+        return self.src.as_bytes().get(self.ptr).copied()
     }
 
     /// Returns u8 char of (current pointer position + 1)
-    fn peek_next(&self) -> u8 {
-        return self.src.as_bytes()[self.ptr+1]
+    fn peek_next(&self) -> Option<u8> {
+        return self.src.as_bytes().get(self.ptr + 1).copied()
     }
 
     /// Skips only ASCII-native whitespace.
@@ -162,8 +175,7 @@ impl Scanner {
     /// - Unicode whitespace is **not supported**
     /// - Encountering it will result in an *Invalid Token* error
     fn skip_whitespace(&mut self) {
-        loop {
-            let c = self.peek();
+        while let Some(c) = self.peek() {
             match c {
                 // Might need to add NL Output soon
                 b'\n' | b'\r' => self.ptr+=1,
@@ -172,5 +184,6 @@ impl Scanner {
                 _ => return
             }
         }
+        
     }
 }
