@@ -1,3 +1,4 @@
+use crate::Span;
 /// A single token produced by [`Scanner`]
 #[derive(Debug)]
 pub struct LangToken {
@@ -5,7 +6,15 @@ pub struct LangToken {
     pub ttype: TokenType,
 
     /// byte offset of token start in source string
-    pub tptr: u32,
+    pub tspan: Span,
+}
+impl LangToken {
+    pub fn new(ttype: TokenType, tspan: Span) -> Self {
+        Self {
+            ttype,
+            tspan,
+        }
+    }
 }
 
 /// Stores only the type of the token as a single byte

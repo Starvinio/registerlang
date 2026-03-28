@@ -1,6 +1,6 @@
 use std::{env, fs, io::{self, Write}, process};
 
-use registerlang::{Compiler, LangError, VM};
+use registerlang::{Parser, LangError, VM};
 
 /// Main entry point collects arguments
 /// and runs program accordingly
@@ -63,10 +63,8 @@ fn run_file(src: &str, vm: &mut VM) {
     }
 }
 
-fn run(content:String, _vm:&mut VM) -> Result<(), LangError> {
-    Compiler::init().compile(content)?;
-    return Ok(());
-    //return vm.interpret(&chunk);
+fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
+    vm.interpret(content.into_boxed_str())
 }
 
 fn print_usage() {

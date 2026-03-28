@@ -1,17 +1,17 @@
-use crate::{Value, Instruction};
+use crate::{Instruction, Span, Value};
 
 
 pub struct Chunk {
     pub instructions: Vec<Instruction>, // OpCodes + Register Indices
     pub constants: Vec<Value>, // Values loaded from source
-    pub src_pos: Vec<u32>, // line, occurences
+    pub ispan: Vec<Span>, // 
 }
 impl Chunk {
     pub fn init() -> Self {
         Self {
             instructions: Vec::new(),
             constants: Vec::new(),
-            src_pos: Vec::new(),
+            ispan: Vec::new(),
         }
     }
 
@@ -21,14 +21,14 @@ impl Chunk {
         self.constants.push(constant);
         return ( self.constants.len() - 1 ) as u16
     }
-    pub fn add_instruction(&mut self, instruction: Instruction, pos: u32) {
+    pub fn add_instruction(&mut self, instruction: Instruction, pos: Span) {
         self.instructions.push(instruction);
-        self.src_pos.push(pos);
+        self.ispan.push(pos);
     }
-    pub fn get_line(&self, instr_indx: usize) -> u32 {
-        match self.src_pos.get(instr_indx) {
-            Some(line) => return *line,
-            None => return 0
+    pub fn get_span(&self, instr_indx: usize) -> Span {
+        match self.ispan.get(instr_indx) {
+            Some(span) => return *span,
+            None => return Span::init(0, 0)
         }
     }
 }

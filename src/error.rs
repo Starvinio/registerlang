@@ -1,9 +1,11 @@
 use std::fmt;
 
+use crate::Span;
+
 #[derive(Debug)]
 pub struct LangError {
-    ptr: u32,
-    msg: String,
+    espan: Span,
+    emsg: String,
     etype: ErrorType
 }
 #[derive(Debug)]
@@ -26,11 +28,11 @@ impl fmt::Display for ErrorType {
 }
 
 impl LangError {
-    pub fn compile(ptr: u32, msg: String) -> LangError {
-        LangError { ptr, msg, etype: ErrorType::CompileError }
+    pub fn compile(espan: Span, emsg: String) -> LangError {
+        LangError { espan, emsg, etype: ErrorType::CompileError }
     }
-    pub fn runtime(ptr: u32, msg: String) -> LangError {
-        LangError { ptr, msg, etype: ErrorType::RuntimeError }
+    pub fn runtime(espan: Span, emsg: String) -> LangError {
+        LangError { espan, emsg, etype: ErrorType::RuntimeError }
     }
     pub fn exit_code(&self) -> i32 {
         match self.etype {
@@ -41,16 +43,16 @@ impl LangError {
     pub fn print_error(&self, src: &str) {
         const RED: &str = "\x1b[31m";
         const RESET: &str = "\x1b[0m";
-        let (line, col) = self.ptr_to_lc(src);
-        println!("{}[{}:{}] {}: {}{}", RED, line, col, self.etype, self.msg, RESET)
+        let (line, col) = self.span_to_loc(src);
+        println!("{}[{}:{}] {}: {}{}", RED, line, col, self.etype, self.emsg, RESET)
 
     }
-    fn ptr_to_lc(&self, src: &str) -> (u32, u32) {
+    fn span_to_loc(&self, src: &str) -> (u32, u32) {
         let mut current_line = 1;
         let mut line_ptr = 0;
         let mut src_ptr = 0;
         while src_ptr < src.len() {
-            if src_ptr as u32 == self.ptr {
+            if src_ptr as u32 == self.espan.start_u32() {
                 let col = (src_ptr - line_ptr) as u32;
                 return (current_line as u32, col) 
             }

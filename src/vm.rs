@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Chunk, LangError, OpCode, Value};
+use crate::{Chunk, LangError, OpCode, Span, Parser, Value};
 
 /// Current upper bound for registers
 /// due to storing dest as single byte
@@ -20,14 +20,17 @@ impl VM {
         }
     }
 
-    pub fn interpret(&mut self, chunk: &Chunk) -> Result<(), LangError> {
+    pub fn interpret(&mut self, src: Box<str>) -> Result<(), LangError> {
+
+        // Compile source to bytecode and store in chunk
+        let chunk = Parser::init(src).compile()?; 
+
         while self.ip < chunk.instructions.len() {
-            self.exec_current_instr(chunk)?;
+            self.exec_current_instr(&chunk)?;
             self.ip += 1
         }
         Ok(())
     }
-
     fn exec_current_instr(&mut self, chunk: &Chunk) -> Result<(), LangError> {
         let instr = chunk.instructions[self.ip];
         let res = match OpCode::try_from(instr.opcode()) {
@@ -41,7 +44,7 @@ impl VM {
             Ok(OpCode::Lthen)=> self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Gthen)=> self.gthen(chunk, instr.x(), instr.y(), instr.z())?,
 
-            Err(b) => return Err(self.err_from_string(chunk.get_line(self.ip), format!("Invalid OpCode: {}", b)))
+            Err(b) => return Err(self.err_from_string(chunk.get_span(self.ip), format!("Invalid OpCode: {}", b)))
         };
         return Ok(res)
 
@@ -49,14 +52,14 @@ impl VM {
 
     pub fn print_instructions(&self, chunk: &Chunk) {
         println!("========= INSTRUCTIONS ==========");
-        let mut last_line = None;
+        let mut last_line: Option<usize> = None;
 
         for (ip, instr) in chunk.instructions.iter().enumerate() {
-            let line = chunk.get_line(ip);
+            let line = chunk.get_span(ip);
 
-            if Some(line) != last_line {
-                println!("{:>4}", line);
-                last_line = Some(line);
+            if Some(line.start()) != last_line {
+                println!("{:>4?}", line);
+                last_line = Some(line.start());
             }
             println!("      {:04}  {}", ip, instr);
         }
@@ -72,7 +75,7 @@ impl VM {
             self.registers[dest as usize] = chunk.constants[idx as usize].clone();
             Ok(())
         } else {
-            Err(self.err_from_str(chunk.get_line(self.ip), "Register Overflow"))
+            Err(self.err_from_str(chunk.get_span(self.ip), "Register Overflow"))
         }
     }
     fn add(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
@@ -81,7 +84,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
         }
         Ok(())
     }
@@ -91,7 +94,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
         }
         Ok(())
     }
@@ -101,7 +104,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
         }
         Ok(())
     }
@@ -111,7 +114,7 @@ impl VM {
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_line(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
         }
         Ok(())
     }
@@ -122,7 +125,7 @@ impl VM {
             (Value::Num(i), Value::Num(j)) => i == j,
             (Value::Bool(i), Value::Bool(j)) => i == j,
             (Value::None, Value::Bool(i)) | (Value::Bool(i), Value::None) => { i == false },
-            _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '==' comparison"))
+            _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '==' comparison"))
 
         };
         self.registers[dest as usize] = Value::Bool(res_bool);
@@ -132,7 +135,7 @@ impl VM {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i < j,
-                _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '<' comparison"))
+                _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '<' comparison"))
             }
         );
         Ok(())
@@ -141,16 +144,16 @@ impl VM {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i > j,
-                _ => return Err(self.err_from_str(chunk.get_line(self.ip), "Invalid '>' comparison"))
+                _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '>' comparison"))
             }
         );
         Ok(())
     }
 
-    fn err_from_str(&self, ptr: u32, msg: &str) -> LangError {
-        LangError::runtime(ptr, msg.to_string())
+    fn err_from_str(&self, espan: Span, msg: &str) -> LangError {
+        LangError::runtime(espan, msg.to_string())
     }
-    fn err_from_string(&self, ptr: u32, msg: String) -> LangError {
-        LangError::runtime(ptr, msg)
+    fn err_from_string(&self, espan: Span, msg: String) -> LangError {
+        LangError::runtime(espan, msg)
     }
 }

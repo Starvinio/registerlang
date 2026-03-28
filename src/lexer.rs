@@ -1,5 +1,4 @@
-use crate::{LangError, LangToken, TokenType};
-
+use crate::{LangError, LangToken, TokenType, Span};
 /// Byte-based lexer
 /// 
 /// Consumes a source string and produces a stream
@@ -18,7 +17,6 @@ pub struct Lexer {
     src: Box<str>,
 
     // Current position (byte index) in the source
-    // TODO: Update this to a Span 
     ptr: usize
 }
 
@@ -65,7 +63,7 @@ impl Lexer {
                 self.advance();
             }
         }
-        Ok(LangToken { ttype: TokenType::Num, tptr: start_ptr as u32 })
+        Ok(LangToken::new(TokenType::Num, Span::init(start_ptr, self.ptr+1)))
     }
 
     /// Emits the next [`LangToken`] from the input stream.
@@ -106,7 +104,7 @@ impl Lexer {
             // Grouping
             b'(' => self.make_token(TokenType::LParen),
             b')' => self.make_token(TokenType::RParen),
-            t => return Err(LangError::compile(self.ptr as u32, format!("Invalid character: '{}'", t as char)))
+            t => return Err(LangError::compile(Span::init(self.ptr, 1), format!("Invalid character: '{}'", t as char)))
         };
         return Ok(res)
     }
@@ -135,7 +133,7 @@ impl Lexer {
     fn make_token(&self, ttype: TokenType) -> LangToken {
         // We subtract from ptr because it will already
         // be on the next token
-        LangToken { ttype, tptr: (self.ptr-1) as u32 }
+        LangToken::new(ttype, Span::init(self.ptr-1, self.ptr)) 
     }
     
     /// returns true if current is EOF char

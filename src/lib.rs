@@ -4,8 +4,9 @@ pub mod vm;
 pub mod chunk;
 pub mod error;
 pub mod lexer;
-pub mod compiler;
+pub mod parser;
 pub mod token;
+pub mod span;
 
 pub use bytecode::*;
 pub use value::Value;
@@ -13,5 +14,7 @@ pub use vm::VM;
 pub use chunk::Chunk;
 pub use error::{LangError, ErrorType};
 pub use lexer::{Lexer};
-pub use compiler::Compiler;
+pub use parser::Parser;
 pub use token::{TokenType, LangToken};
+
+pub use span::Span;
