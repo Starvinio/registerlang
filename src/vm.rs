@@ -23,7 +23,7 @@ impl VM {
     pub fn interpret(&mut self, src: Box<str>) -> Result<(), LangError> {
 
         // Compile source to bytecode and store in chunk
-        let chunk = Parser::init(src).compile()?; 
+        let chunk = Parser::init(src)?.compile()?; 
 
         while self.ip < chunk.instructions.len() {
             self.exec_current_instr(&chunk)?;
