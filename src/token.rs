@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::Span;
 /// A single token produced by [`Scanner`]
 #[derive(Debug)]
@@ -99,4 +101,40 @@ pub enum TokenType {
     /// Produced by both '\n' and '\r'
     NL,
 }
+impl fmt::Display for TokenType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            // Arithmetic
+            TokenType::Plus => "+",
+            TokenType::Minus => "-",
+            TokenType::Star => "*",
+            TokenType::Slash => "/",
 
+            // Boolean
+            TokenType::Bang => "!",
+            TokenType::BangEq => "!=",
+            TokenType::Eq => "=",
+            TokenType::EqEq => "==",
+            TokenType::Lthen => "<",
+            TokenType::LthenEq => "<=",
+            TokenType::Gthen => ">",
+            TokenType::GthenEq => ">=",
+
+            // Grouping
+            TokenType::LParen => "(",
+            TokenType::RParen => ")",
+
+            // Literals / keywords
+            TokenType::Num => "<num>",
+            TokenType::True => "true",
+            TokenType::False => "false",
+            TokenType::NIL => "nil",
+
+            // Markers
+            TokenType::EOF => "<eof>",
+            TokenType::NL => "<nl>",
+        };
+
+        write!(f, "{}", s)
+    }
+}

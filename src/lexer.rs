@@ -14,7 +14,7 @@ pub struct Lexer {
     /// Stored as [`Box<>`] to:
     /// - Display immutability
     /// - Avoid structure lifetime
-    src: Box<str>,
+    pub src: Box<str>,
 
     // Current position (byte index) in the source
     ptr: usize
