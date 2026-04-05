@@ -63,7 +63,7 @@ impl Lexer {
                 self.advance();
             }
         }
-        Ok(LangToken::new(TokenType::Num, Span::init(start_ptr, self.ptr+1)))
+        Ok(LangToken::new(TokenType::Num, Span::init(start_ptr, self.ptr-start_ptr)))
     }
 
     /// Emits the next [`LangToken`] from the input stream.

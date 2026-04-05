@@ -1,10 +1,17 @@
 use std::{env, fs, io::{self, Write}, process};
 
-use registerlang::{Parser, LangError, VM};
+use registerlang::{ LangError, VM, debug };
 
 /// Main entry point collects arguments
 /// and runs program accordingly
 fn main() { 
+    
+    debug::quickres(debug::test_parser("2.0 + 2"));
+    debug::quickres(debug::test_parser("2 - 2"));
+    debug::quickres(debug::test_parser("2 + 2 * 2"));
+    debug::quickres(debug::test_parser("2 * 2 + 2"));
+    process::exit(420);
+    
     let argv:Vec<String> = env::args().collect();
 
     // Initialize VM
@@ -20,6 +27,7 @@ fn main() {
     }
     process::exit(0);
 }
+
 
 fn run_repl(vm: &mut VM) {
     println!("REPL Mode: Press ^D to Escape");

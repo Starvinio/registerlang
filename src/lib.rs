@@ -7,6 +7,7 @@ pub mod lexer;
 pub mod parser;
 pub mod token;
 pub mod span;
+pub mod debug;
 
 pub use bytecode::*;
 pub use value::Value;
@@ -16,5 +17,6 @@ pub use error::{LangError, ErrorType};
 pub use lexer::{Lexer};
 pub use parser::Parser;
 pub use token::{TokenType, LangToken};
+pub use debug::*;
 
 pub use span::Span;
