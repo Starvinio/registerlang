@@ -21,7 +21,6 @@ impl Parser {
         let mut lexer = Lexer::init(src);
         let previous = lexer.emit_token()?;
         let current = lexer.emit_token()?;
-        println!("Parser struct\nprevious: {:?}\ncurrent: {:?}\n", previous, current);
         Ok(Self { lexer, previous, current, chunk:Chunk::init(), stack_top: 0 })
     }
 
@@ -120,7 +119,7 @@ impl Parser {
     /// To generate instructions based on an expression
     /// Returns register idx of lhs or the register idx of the outer result
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
-        let lhs_reg = match self.previous.ttype {
+        let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
             _ => return Err(LangError::compile(
                     self.previous.tspan,
@@ -128,13 +127,10 @@ impl Parser {
                     ))
         };
         loop {
-            let op = match self.current.ttype {
-                TokenType::EOF => break,
-                TokenType::Plus | TokenType::Minus |
-                    TokenType::Star | TokenType::Slash => &self.current.ttype,
-                _ => return Err(self.err_at_curr("Invalid Operator"))
+            let (l_bp, r_bp) = match self.infix_bp(&self.current) {
+                Some(bp) => bp,
+                None => break
             };
-            let (l_bp, r_bp) = self.infix_bp(&op)?;
 
             if l_bp < min_bp { break }
 
@@ -148,19 +144,23 @@ impl Parser {
             let rhs_reg = self.expression_bp(r_bp)?;
             let expr_span = Span::init(lhs_start, self.previous.tspan.end() - lhs_start);
 
-            return Ok(self.binary_op(opcode_expr, lhs_reg, rhs_reg, expr_span));
+            lhs_reg = self.binary_op(opcode_expr, lhs_reg, rhs_reg, expr_span);
         }
 
         Ok(lhs_reg)
     }
-    fn infix_bp(&self, op: &TokenType) -> Result<(u8, u8), LangError> {
-        let bp = match &op {
+
+    /// Assigns binding power to a given token assuming its an operator
+    /// if it's not an operator, it function returns None
+    fn infix_bp(&self, op: &LangToken) -> Option<(u8, u8)> {
+        let bp = match &op.ttype {
             TokenType::Plus | TokenType::Minus => (1, 2),
             TokenType::Star | TokenType::Slash => (3, 4),
-            _ => return Err(self.err_at_curr("Invalid Operator"))
+            _ => return None
         };
-        Ok(bp)
+        Some(bp)
     }
+
 
     fn op2opcode(&self, op: &LangToken) -> Result<OpCode, LangError> {
         let opcode = match op.ttype {

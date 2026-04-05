@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::Span;
+use crate::{Span, LangToken};
 
 #[derive(Debug)]
 pub struct LangError {

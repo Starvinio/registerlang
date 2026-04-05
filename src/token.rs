@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::Span;
+use crate::{Span, LangError};
 /// A single token produced by [`Scanner`]
 #[derive(Debug)]
 pub struct LangToken {
@@ -16,6 +16,9 @@ impl LangToken {
             ttype,
             tspan,
         }
+    }
+    pub fn invalid_token_x(&self, filler: &str) -> LangError {
+        return LangError::compile(self.tspan, format!("Invalid {}: {}", filler, self.ttype))
     }
 }
 
