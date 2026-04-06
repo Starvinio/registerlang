@@ -11,6 +11,7 @@ pub struct Parser {
     current: LangToken,
     chunk: Chunk,
     stack_top: u8,
+    invert_op: bool,
 }
 impl Parser {
     /// Init function already lexes the first two tokens
@@ -21,7 +22,7 @@ impl Parser {
         let mut lexer = Lexer::init(src);
         let previous = lexer.emit_token()?;
         let current = lexer.emit_token()?;
-        Ok(Self { lexer, previous, current, chunk:Chunk::init(), stack_top: 0 })
+        Ok(Self { lexer, previous, current, chunk:Chunk::init(), stack_top: 0, invert_op: false })
     }
 
     /// Entry point for compilation phase of the interpreter
@@ -31,14 +32,6 @@ impl Parser {
         self.consume(TokenType::EOF, "Expect end of expression.")?;
 
         Ok( self.chunk )
-    }
-
-    // TODO: Add proper handling (including underline diagnostic) 
-    fn err_at_curr(&self, emsg: &str) -> LangError {
-        LangError::compile(self.current.tspan, emsg.to_string())
-    }
-    fn err_at_prev(&self, emsg: &str) -> LangError {
-        LangError::compile(self.previous.tspan, emsg.to_string())
     }
 
     /// Replaces [`previous`](Self::previous) with current
@@ -51,8 +44,8 @@ impl Parser {
     /// Shifts [`previous`](Self::previous) and [`current`](Self::current) twice
     /// This is useful for expression parsing, as we ensure that current is an operator
     fn advance_twice(&mut self) -> Result<(), LangError> {
-        self.previous = mem::replace(&mut self.current, self.lexer.emit_token()?);
-        self.previous = mem::replace(&mut self.current, self.lexer.emit_token()?);
+        self.previous = self.lexer.emit_token()?;
+        self.current = self.lexer.emit_token()?;
         Ok(())
     }
 
@@ -127,7 +120,7 @@ impl Parser {
                     ))
         };
         loop {
-            let (l_bp, r_bp) = match self.infix_bp(&self.current) {
+            let (l_bp, r_bp, invert) = match self.infix_bp() {
                 Some(bp) => bp,
                 None => break
             };
@@ -136,46 +129,62 @@ impl Parser {
 
             // store pos of lhs for better debugging
             let lhs_start = self.previous.tspan.start();
+
             // store opcode of current operator
-            let opcode_expr = self.op2opcode(&self.current)?;
+            let opcode = OpCode::op2opcode(&self.current)?;
+
             // Advance twice to that prev = num and curr = op
             self.advance_twice()?;
 
             let rhs_reg = self.expression_bp(r_bp)?;
             let expr_span = Span::init(lhs_start, self.previous.tspan.end() - lhs_start);
 
-            lhs_reg = self.binary_op(opcode_expr, lhs_reg, rhs_reg, expr_span);
+            lhs_reg = self.binary_op(opcode, lhs_reg, rhs_reg, expr_span, invert);
+            self.free_register();
         }
 
         Ok(lhs_reg)
     }
 
     /// Assigns binding power to a given token assuming its an operator
+    /// Returns invert flag if invertation is desirable
     /// if it's not an operator, it function returns None
-    fn infix_bp(&self, op: &LangToken) -> Option<(u8, u8)> {
-        let bp = match &op.ttype {
-            TokenType::Plus | TokenType::Minus => (1, 2),
-            TokenType::Star | TokenType::Slash => (3, 4),
+    fn infix_bp(&mut self) -> Option<(u8, u8, bool)> {
+        let bp = match &self.current.ttype {
+            TokenType::Eq => (2, 1, false),
+
+            TokenType::EqEq | TokenType::Lthen |
+                TokenType::LthenEq | TokenType::BangEq  => (3, 4, false),
+
+            // a > b => b < a
+            TokenType::Gthen | TokenType::GthenEq => (3, 4, true),
+
+            TokenType::Plus | TokenType::Minus => (5, 6, false),
+
+            TokenType::Star | TokenType::Slash => (7, 8, false),
             _ => return None
         };
         Some(bp)
     }
 
-
-    fn op2opcode(&self, op: &LangToken) -> Result<OpCode, LangError> {
-        let opcode = match op.ttype {
-            TokenType::Plus => OpCode::Add,
-            TokenType::Minus => OpCode::Sub,
-            TokenType::Star => OpCode::Mul,
-            TokenType::Slash => OpCode::Div,
-            _ => return Err(LangError::compile(op.tspan, format!("Failed to convert operator {} to bytecode", op.ttype)))
-        };
-        Ok(opcode)
-    }
         
-    fn binary_op(&mut self, op: OpCode, lhs_reg: u8, rhs_reg: u8, span: Span) -> u8 {
-        self.chunk.add_instruction( Instruction::make_xyz(op as u8, lhs_reg, lhs_reg, rhs_reg), span );
+    fn binary_op(&mut self, op: OpCode, lhs_reg: u8, rhs_reg: u8, span: Span, invert:bool) -> u8 {
+        if invert {
+            self.chunk.add_instruction( Instruction::make_xyz(op as u8, lhs_reg, rhs_reg, lhs_reg), span );
+        } else {
+            self.chunk.add_instruction( Instruction::make_xyz(op as u8, lhs_reg, lhs_reg, rhs_reg), span );
+        }
         lhs_reg 
     }
+}
+
+
+fn prefix_bp(op: &LangToken) -> Option<((), u8)> {
+    let bp = match &op.ttype {
+        TokenType::Plus | TokenType::Minus |
+            TokenType::Bang => ((), 8),
+        _ => return None
+    };
+    Some(bp)
 }
 

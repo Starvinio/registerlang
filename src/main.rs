@@ -6,10 +6,11 @@ use registerlang::{ LangError, VM, debug };
 /// and runs program accordingly
 fn main() { 
     
-    debug::quickres(debug::test_parser("2.0 + 2"));
-    debug::quickres(debug::test_parser("2 - 2"));
+    debug::quickres(debug::test_parser("2 + 2"));
     debug::quickres(debug::test_parser("2 + 2 * 2"));
     debug::quickres(debug::test_parser("2 * 2 + 2"));
+    debug::quickres(debug::test_parser("2 + 2 == 4"));
+    debug::quickres(debug::test_parser("2 + 2 >= 4"));
     process::exit(420);
     
     let argv:Vec<String> = env::args().collect();

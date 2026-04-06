@@ -40,9 +40,10 @@ impl VM {
             Ok(OpCode::Sub)=> self.sub(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Mul)=> self.mul(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Div)=> self.div(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Not)=> todo!("need to add NOT"),
             Ok(OpCode::Equal)=> self.equal(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Lthen)=> self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Gthen)=> self.gthen(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Lequal)=> self.lequal(chunk, instr.x(), instr.y(), instr.z())?,
 
             Err(b) => return Err(self.err_from_string(chunk.get_span(self.ip), format!("Invalid OpCode: {}", b)))
         };
@@ -140,10 +141,10 @@ impl VM {
         );
         Ok(())
     }
-    fn gthen(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn lequal(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
-                (Value::Num(i), Value::Num(j)) => i > j,
+                (Value::Num(i), Value::Num(j)) => i <= j,
                 _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '>' comparison"))
             }
         );

@@ -97,8 +97,8 @@ impl Lexer {
 
             // Boolean Operators
             b'!' => self.two_char_token('=', TokenType::BangEq, TokenType::Bang),
-            b'<' => self.two_char_token('=', TokenType::Lthen, TokenType::LthenEq),
-            b'>' => self.two_char_token('=', TokenType::Gthen, TokenType::GthenEq),
+            b'<' => self.two_char_token('=', TokenType::LthenEq, TokenType::Lthen),
+            b'>' => self.two_char_token('=', TokenType::GthenEq, TokenType::Gthen),
             b'=' => self.two_char_token('=', TokenType::EqEq, TokenType::Eq),
 
             // Grouping

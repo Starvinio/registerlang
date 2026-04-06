@@ -1,5 +1,7 @@
 use std::fmt;
 
+use crate::{LangToken, TokenType, LangError};
+
 #[derive(Clone, Copy)]
 pub struct Instruction(u32);
 
@@ -55,9 +57,10 @@ pub enum OpCode {
     Sub = 3,
     Mul = 4,
     Div = 5,
-    Equal = 6,
-    Lthen = 7,
-    Gthen = 8,
+    Not = 6,
+    Equal = 7,
+    Lthen = 8,
+    Lequal = 9,
 }
 impl TryFrom<u8> for OpCode {
     type Error = u8;
@@ -70,10 +73,28 @@ impl TryFrom<u8> for OpCode {
             3 => Ok(OpCode::Sub),
             4 => Ok(OpCode::Mul),
             5 => Ok(OpCode::Div),
-            6 => Ok(OpCode::Equal),
-            7 => Ok(OpCode::Lthen),
-            8 => Ok(OpCode::Gthen),
+            6 => Ok(OpCode::Not),
+            7 => Ok(OpCode::Equal),
+            8 => Ok(OpCode::Lthen),
+            9 => Ok(OpCode::Lequal),
             unknown => Err(unknown),
         }
     }
+}
+impl OpCode {
+    pub fn op2opcode(op: &LangToken) -> Result<Self, LangError> {
+        let opcode = match op.ttype {
+            TokenType::Plus => OpCode::Add,
+            TokenType::Minus => OpCode::Sub,
+            TokenType::Star => OpCode::Mul,
+            TokenType::Slash => OpCode::Div,
+            TokenType::Bang => OpCode::Not,
+            TokenType::EqEq => OpCode::Equal,
+            TokenType::Lthen | TokenType::Gthen => OpCode::Lthen,
+            TokenType::LthenEq | TokenType::GthenEq => OpCode::Lequal,
+            _ => return Err(LangError::compile(op.tspan, format!("Failed to convert operator '{}' to bytecode", op.ttype)))
+        };
+        Ok(opcode)
+    }
+
 }
