@@ -5,12 +5,13 @@ use registerlang::{ LangError, VM, debug };
 /// Main entry point collects arguments
 /// and runs program accordingly
 fn main() { 
+    let mut vm = VM::init();
     
-    debug::quickres(debug::test_parser("2 + 2"));
-    debug::quickres(debug::test_parser("2 + 2 * 2"));
-    debug::quickres(debug::test_parser("2 * 2 + 2"));
-    debug::quickres(debug::test_parser("2 + 2 == 4"));
-    debug::quickres(debug::test_parser("2 + 2 >= 4"));
+    debug::quickres(debug::test_expr("2 + 2", &mut vm));
+    debug::quickres(debug::test_expr("2 + 2 * 2", &mut vm));
+    debug::quickres(debug::test_expr("2 * 2 + 2", &mut vm));
+    debug::quickres(debug::test_expr("2 + 2 == 4", &mut vm));
+    debug::quickres(debug::test_expr("2 + 2 >= 4", &mut vm));
     process::exit(420);
     
     let argv:Vec<String> = env::args().collect();

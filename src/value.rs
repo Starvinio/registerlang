@@ -21,7 +21,7 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a - b)),
-            _ => Err(format!("Tried to add invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!("Tried to subtract invalid types: {:?}, {:?}", self, rhs))
         }
     }
 }
@@ -30,7 +30,7 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a * b)),
-            _ => Err(format!("Tried to add invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!("Tried to multiply invalid types: {:?}, {:?}", self, rhs))
         }
     }
 }
@@ -39,7 +39,7 @@ impl Div for Value {
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a / b)),
-            _ => Err(format!("Tried to add invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!("Tried to divide invalid types: {:?}, {:?}", self, rhs))
         }
     }
 }

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{Chunk, LangError, OpCode, Span, Parser, Value};
+use crate::{Chunk, LangError, OpCode, Span, Parser, Value, debug};
 
 /// Current upper bound for registers
 /// due to storing dest as single byte
@@ -14,7 +14,7 @@ pub struct VM {
 impl VM {
     pub fn init() -> Self {
         return Self { 
-            registers: Vec::with_capacity(8),
+            registers: vec![Value::None; MAX_REGISTERS],
             _globals: HashMap::new(),
             ip: 0 
         }
@@ -25,17 +25,22 @@ impl VM {
         // Compile source to bytecode and store in chunk
         let chunk = Parser::init(src)?.compile()?; 
 
+        debug::print_instr(&chunk);
+
         while self.ip < chunk.instructions.len() {
             self.exec_current_instr(&chunk)?;
             self.ip += 1
         }
+        println!("Result: {:?}", self.registers[0]);
+        self.registers = vec![Value::None; MAX_REGISTERS];
+        self.ip = 0;
         Ok(())
     }
     fn exec_current_instr(&mut self, chunk: &Chunk) -> Result<(), LangError> {
         let instr = chunk.instructions[self.ip];
         let res = match OpCode::try_from(instr.opcode()) {
             Ok(OpCode::Return) => self.ret(chunk, instr.x())?,
-            Ok(OpCode::Load) => self.load(chunk, instr.x(), instr.yz())?,
+            Ok(OpCode::Load) => self.load(chunk, instr.x(), instr.yz()),
             Ok(OpCode::Add)=> self.add(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Sub)=> self.sub(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Mul)=> self.mul(chunk, instr.x(), instr.y(), instr.z())?,
@@ -71,13 +76,9 @@ impl VM {
         println!("return: {:?}", self.registers[dest as usize]);
         Ok(())
     }
-    fn load(&mut self, chunk: &Chunk, dest: u8, idx: u16) -> Result<(), LangError> {
-        if self.registers.len() < MAX_REGISTERS {
-            self.registers[dest as usize] = chunk.constants[idx as usize].clone();
-            Ok(())
-        } else {
-            Err(self.err_from_str(chunk.get_span(self.ip), "Register Overflow"))
-        }
+    fn load(&mut self, chunk: &Chunk, dest: u8, idx: u16) {
+        println!("Loading {:?}...", chunk.constants[idx as usize]);
+        self.registers[dest as usize] = chunk.constants[idx as usize].clone();
     }
     fn add(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] + self.registers[b as usize];
@@ -100,6 +101,7 @@ impl VM {
         Ok(())
     }
     fn mul(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+        //println!("working with registers: {:?}", self.registers);
         let result = self.registers[a as usize] * self.registers[b as usize];
         println!("register[{dest}] = {:?} * {:?} = {:?}", self.registers[a as usize], self.registers[b as usize], result);
 
