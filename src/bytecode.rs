@@ -46,6 +46,11 @@ impl Instruction {
             (opcode as u32) << 24 | (x as u32) << 16 | y as u32   
         )
     }
+    pub fn make_xx(opcode: u8, x: u8) -> Self {
+        Instruction (
+            (opcode as u32) << 24 | (x as u32) << 16 | (x as u32) << 8
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -57,10 +62,11 @@ pub enum OpCode {
     Sub = 3,
     Mul = 4,
     Div = 5,
-    Not = 6,
-    Equal = 7,
-    Lthen = 8,
-    Lequal = 9,
+    Neg = 6,
+    Not = 7,
+    Equal = 8,
+    Lthen = 9,
+    Lequal = 10,
 }
 impl TryFrom<u8> for OpCode {
     type Error = u8;
@@ -73,10 +79,11 @@ impl TryFrom<u8> for OpCode {
             3 => Ok(OpCode::Sub),
             4 => Ok(OpCode::Mul),
             5 => Ok(OpCode::Div),
-            6 => Ok(OpCode::Not),
-            7 => Ok(OpCode::Equal),
-            8 => Ok(OpCode::Lthen),
-            9 => Ok(OpCode::Lequal),
+            6 => Ok(OpCode::Neg),
+            7 => Ok(OpCode::Not),
+            8 => Ok(OpCode::Equal),
+            9 => Ok(OpCode::Lthen),
+            10 => Ok(OpCode::Lequal),
             unknown => Err(unknown),
         }
     }

@@ -108,16 +108,30 @@ impl Parser {
         self.expression_bp(0)?;
         Ok(())
     }
-    /// Uses **Pratt Parsing** and a mix of recursive/iterative structure
-    /// To generate instructions based on an expression
+    /// Uses **Pratt Parsing** with a mix of recursive/iterative structure
+    /// to generate instructions based on an expression.
     /// Returns register idx of lhs or the register idx of the outer result
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
-            _ => return Err(LangError::compile(
-                    self.previous.tspan,
-                    format!("Unexpected start of expression: {:?}", self.previous)
-                    ))
+            TokenType::LParen => {
+                self.advance()?;
+                let res = self.expression_bp(0)?;
+                self.consume(TokenType::RParen, "Unmatched closing delimiter '('")?;
+                res
+            }
+            _ => { // If lhs is not a number, it can only a prefix operator or '('
+                let ((), r_bp) = match self.prefix_bp() {
+                    Some(res) => { res },
+                    None => return Err(LangError::compile(
+                        self.previous.tspan,
+                        format!("Unexpected start of expression: {:?}", self.previous)
+                        ))
+                };
+                self.advance()?;
+                let rhs = self.expression_bp(r_bp)?;
+                self.unary_op(OpCode::Neg, rhs, self.previous.tspan)
+            }
         };
         loop {
             let (l_bp, r_bp, invert) = match self.infix_bp() {
@@ -167,6 +181,17 @@ impl Parser {
         Some(bp)
     }
 
+    /// Returns a dummy for l_bp and a high precedence r_bp
+    /// Also handles all cases for an invalid lhs token
+    fn prefix_bp(&self) -> Option<((), u8)> {
+        let bp = match self.previous.ttype {
+            TokenType::Plus | TokenType::Minus |
+                TokenType::Bang => ((), 8),
+            _ => return None
+        };
+        Some(bp)
+    }
+
         
     fn binary_op(&mut self, op: OpCode, lhs_reg: u8, rhs_reg: u8, span: Span, invert:bool) -> u8 {
         if invert {
@@ -176,15 +201,13 @@ impl Parser {
         }
         lhs_reg 
     }
+
+    fn unary_op(&mut self, op: OpCode, reg: u8, span: Span) -> u8 {
+        self.chunk.add_instruction( Instruction::make_xx(op as u8, reg), span );
+        reg 
+    }
+
 }
 
 
-fn prefix_bp(op: &LangToken) -> Option<((), u8)> {
-    let bp = match &op.ttype {
-        TokenType::Plus | TokenType::Minus |
-            TokenType::Bang => ((), 8),
-        _ => return None
-    };
-    Some(bp)
-}
 

@@ -6,6 +6,26 @@ pub enum Value {
     Bool(bool),
     None
 }
+impl Value {
+    pub fn val2num(&self) -> Result<f32, String> {
+        match self {
+            Value::Num(f) => Ok(f.clone()),
+            _ => Err(format!("Tried to parse {:?} into Number(f32)", self))
+        }
+    }
+    pub fn val2bool(&self) -> Result<bool, String> {
+        match self {
+            Value::Bool(b) => Ok(b.clone()),
+            _ => Err(format!("Tried to parse {:?} into Number(f32)", self))
+        }
+    }
+    pub fn val2neg(&self) -> Result<f32, String> {
+        match self {
+            Value::Num(f) => Ok(-f.clone()),
+            _ => Err(format!("Tried to negate value of type {:?}", self))
+        }
+    }
+}
 
 impl Add for Value {
     type Output = Result<Value, String>;

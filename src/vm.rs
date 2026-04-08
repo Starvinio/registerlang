@@ -45,6 +45,7 @@ impl VM {
             Ok(OpCode::Sub)=> self.sub(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Mul)=> self.mul(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Div)=> self.div(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Neg) => self.neg(chunk, instr.x(), instr.y())?, 
             Ok(OpCode::Not)=> todo!("need to add NOT"),
             Ok(OpCode::Equal)=> self.equal(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Lthen)=> self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
@@ -54,6 +55,15 @@ impl VM {
         };
         return Ok(res)
 
+    }
+
+    fn neg(&mut self, chunk:&Chunk, dest:u8, a:u8) -> Result<(), LangError> {
+        println!("register[{dest}] = -{:?}", self.registers[a as usize]);
+        self.registers[dest as usize] = match self.registers[a as usize].val2neg() {
+            Ok(f) => Value::Num(f),
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+        };
+        Ok(())
     }
 
     pub fn print_instructions(&self, chunk: &Chunk) {

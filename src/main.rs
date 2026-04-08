@@ -12,8 +12,10 @@ fn main() {
     debug::quickres(debug::test_expr("2 * 2 + 2", &mut vm));
     debug::quickres(debug::test_expr("2 + 2 == 4", &mut vm));
     debug::quickres(debug::test_expr("2 + 2 >= 4", &mut vm));
+    debug::quickres(debug::test_expr("--2 + --2 >= 4", &mut vm));
+    debug::quickres(debug::test_expr("(2 + 2) * 4", &mut vm));
     process::exit(420);
-    
+   
     let argv:Vec<String> = env::args().collect();
 
     // Initialize VM
