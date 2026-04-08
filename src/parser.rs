@@ -29,7 +29,7 @@ impl Parser {
     /// Function consumes parser
     pub fn compile(mut self) -> Result<Chunk, LangError> {
         self.expression()?;
-        self.consume(TokenType::EOF, "Expect end of expression.")?;
+        self.consume(TokenType::EOF, self.current.tspan, "Expect end of expression.")?;
 
         Ok( self.chunk )
     }
@@ -49,12 +49,12 @@ impl Parser {
         Ok(())
     }
 
-    fn consume(&mut self, expected: TokenType, message:&str) -> Result<(), LangError> {
-        if matches!(&self.current.ttype, expected) {
+    fn consume(&mut self, expected: TokenType, span:Span, message:&str) -> Result<(), LangError> {
+        if self.current.ttype == expected {
             self.advance();
             Ok(())
         } else {
-            Err(LangError::compile(self.current.tspan, message.to_string()))
+            Err(LangError::compile(span, message.to_string()))
         }
 
     }
@@ -109,18 +109,19 @@ impl Parser {
         Ok(())
     }
     /// Uses **Pratt Parsing** with a mix of recursive/iterative structure
-    /// to generate instructions based on an expression.
+    /// and generates instructions based on an expression.
     /// Returns register idx of lhs or the register idx of the outer result
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
             TokenType::LParen => {
+                let l_span = self.previous.tspan;
                 self.advance()?;
                 let res = self.expression_bp(0)?;
-                self.consume(TokenType::RParen, "Unmatched closing delimiter '('")?;
+                self.consume(TokenType::RParen, l_span, "Unmatched closing delimiter '('")?;
                 res
             }
-            _ => { // If lhs is not a number, it can only a prefix operator or '('
+            _ => { // If lhs is not a number, it can only be a prefix operator or '('
                 let ((), r_bp) = match self.prefix_bp() {
                     Some(res) => { res },
                     None => return Err(LangError::compile(

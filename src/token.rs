@@ -24,7 +24,7 @@ impl LangToken {
 
 /// Stores only the type of the token as a single byte
 /// Token Data (number, booleans, strings) are parsed from src ptr
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum TokenType {
 
     //  === Arithmetic Operators ===
