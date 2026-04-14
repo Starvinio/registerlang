@@ -1,22 +1,22 @@
 pub mod bytecode;
-pub mod value;
-pub mod vm;
 pub mod chunk;
+pub mod debug;
 pub mod error;
 pub mod lexer;
 pub mod parser;
-pub mod token;
 pub mod span;
-pub mod debug;
+pub mod token;
+pub mod value;
+pub mod vm;
 
 pub use bytecode::*;
+pub use chunk::Chunk;
+pub use debug::*;
+pub use error::{ErrorType, LangError};
+pub use lexer::Lexer;
+pub use parser::Parser;
+pub use token::{LangToken, TokenType};
 pub use value::Value;
 pub use vm::VM;
-pub use chunk::Chunk;
-pub use error::{LangError, ErrorType};
-pub use lexer::{Lexer};
-pub use parser::Parser;
-pub use token::{TokenType, LangToken};
-pub use debug::*;
 
 pub use span::Span;

@@ -1,6 +1,6 @@
-use crate::{LangError, LangToken, TokenType, Span};
+use crate::{LangError, LangToken, Span, TokenType};
 /// Byte-based lexer
-/// 
+///
 /// Consumes a source string and produces a stream
 /// of [`LangToken`] via [`emit_token`](Self::emit_token)
 ///
@@ -9,61 +9,119 @@ use crate::{LangError, LangToken, TokenType, Span};
 /// - Assumes ASCII-oriented output
 /// - Does not handle unicode
 pub struct Lexer {
-
     /// Source code being scanned
     /// Stored as [`Box<>`] to:
     /// - Display immutability
     /// - Avoid structure lifetime
     pub src: Box<str>,
 
+    // Start of the current token
+    start: usize,
+
     // Current position (byte index) in the source
-    ptr: usize
+    current: usize,
 }
 
 impl Lexer {
-
-    /// Init that loads [`Box<str>`] into [`src`](Self::src) 
-    /// and initializes ['ptr'](Self::ptr) to 0
+    /// Init that loads [`Box<str>`] into [`src`](Self::src)
+    /// and initializes ['current'](Self::current) to 0
     pub fn init(src: Box<str>) -> Self {
         Self {
             src,
-            ptr:0
+            start: 0,
+            current: 0,
         }
     }
 
-    /// Advances source ptr by one and returns previous char as u8
+    /// Advances source current by one and returns previous char as u8
     fn advance(&mut self) -> u8 {
-        self.ptr += 1;
-        return self.src.as_bytes()[self.ptr-1]
-    } 
-
-    /// Shortcut function to determine if given byte is a digit
-    fn is_digit(&self, char:u8) -> bool {
-        matches!(char, b'0'..=b'9') 
+        self.current += 1;
+        return self.src.as_bytes()[self.current - 1];
     }
 
-    /// Consumes and concatenates digits and ',' starting from [`start_ptr`]
+    /// Shortcut function to determine if given byte is a digit
+    /// Wrapped to avoid mismatch in definition
+    fn is_digit(&self, char: u8) -> bool {
+        matches!(char, b'0'..=b'9')
+    }
+
+    /// Used to determine the span of a literal
+    /// Allows usage of letters, underscores and digits
+    fn is_alphanumeric(&self, c: u8) -> bool {
+        match c {
+            b'a'..=b'z' | b'A'..=b'Z' | b'_' | b'0'..=b'9' => true,
+            _ => false,
+        }
+    }
+
+    /// This function, as of now, is a VERY rough prototype
+    /// Further development will add a proper Trie
+    fn identifier(&mut self) -> LangToken {
+        // Loop to grasp range of identifier
+        while let Some(c) = self.peek() {
+            if self.is_alphanumeric(c) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        let span = Span::start_end(self.start, self.current);
+        LangToken::new(self.identifier_type(&span), span)
+    }
+
+    fn identifier_type(&self, span: &Span) -> TokenType {
+        let ttype = match self.src.as_bytes()[span.start()] {
+            b't' => self.check_keyword(self.current, 3, "rue", TokenType::True),
+            b'f' => self.check_keyword(self.current, 4, "alse", TokenType::False),
+            b'n' => self.check_keyword(self.current, 2, "il", TokenType::NIL),
+            _ => TokenType::Identifier,
+        };
+        ttype
+    }
+
+    /// Matches remainder of literal to potential keyword
+    /// Example (checking for keyword "true"):
+    /// let type:TokenType = self.check_keyword(
+    ///     span.start()+1,
+    ///     span.len(),
+    ///     "rue",
+    ///     TokenType::True
+    /// );
+    fn check_keyword(
+        &self,
+        start: usize,
+        len: usize,
+        rest: &str,
+        res_type: TokenType,
+    ) -> TokenType {
+        res_type
+    }
+
+    // Skips all digits until current is no longer a digit
+    // Does NOT skip dots
+    fn skip_digits(&mut self) {
+        while let Some(c) = self.peek() {
+            if !self.is_digit(c) {
+                break;
+            }
+            self.advance();
+        }
+    }
+    /// Consumes and concatenates digits and ',' starting from [`self.start`]
     /// And returns [`LangToken`] with type [`TokenType::Num`]
     ///
     /// Returns [`LangError`] if invalid Syntax
-    fn number(&mut self, start_ptr: usize) -> Result<LangToken, LangError> {
-
+    fn number(&mut self) -> LangToken {
         // All digits before '.'
-        while let Some(c) = self.peek() {
-            if !self.is_digit(c) {
-                break
-            }
-            self.advance();
-        }
+        self.skip_digits();
 
-        if matches!(self.peek(), Some(b'.')) && matches!(self.peek_next(), Some(c) if self.is_digit(c)) {
-            self.advance();
-            // All digits after '.'
-            while matches!(self.src.as_bytes()[self.ptr], b'0'..=b'9') {
-                self.advance();
-            }
+        if matches!(self.peek(), Some(b'.'))
+            && matches!(self.peek_next(), Some(c) if self.is_digit(c))
+        {
+            self.advance(); // Skips the '.'
+            self.skip_digits();
         }
-        Ok(LangToken::new(TokenType::Num, Span::init(start_ptr, self.ptr-start_ptr)))
+        LangToken::new(TokenType::Num, Span::start_end(self.start, self.current))
     }
 
     /// Emits the next [`LangToken`] from the input stream.
@@ -80,15 +138,29 @@ impl Lexer {
     /// any unsupported or non-ASCII input will result in an error.
     pub fn emit_token(&mut self) -> Result<LangToken, LangError> {
         self.skip_whitespace();
+        self.start = self.current;
 
         // End of file reached, output EOF
-        if self.is_at_end() {return Ok(self.make_token(TokenType::EOF))} 
-        
-        let c = self.advance();
-        let res = match c {
-            // Numbers
-            b'0'..=b'9' => return self.number(self.ptr-1),
+        if self.is_at_end() {
+            return Ok(self.make_token(TokenType::EOF));
+        }
 
+        let c = self.advance();
+
+        // Wrapper function used to avoid mismatch
+        // Needs to be before identifier function
+        // so that no name starts with number
+        if self.is_digit(c) {
+            return Ok(self.number());
+        }
+
+        // Usually allows letters, underscores AND digits
+        // However, digits are already skipped by self.is_digit() call
+        if self.is_alphanumeric(c) {
+            return Ok(self.identifier());
+        }
+
+        let res = match c {
             // Arithmetic operators
             b'+' => self.make_token(TokenType::Plus),
             b'-' => self.make_token(TokenType::Minus),
@@ -104,61 +176,61 @@ impl Lexer {
             // Grouping
             b'(' => self.make_token(TokenType::LParen),
             b')' => self.make_token(TokenType::RParen),
-            t => return Err(LangError::compile(Span::init(self.ptr, 1), format!("Invalid character: '{}'", t as char)))
+            c => {
+                return Err(LangError::compile(
+                    Span::start_len(self.current, 1),
+                    format!("Invalid character: '{}'", c as char),
+                ));
+            }
         };
-        return Ok(res)
-    }
-
-    pub fn token_stream(&mut self) -> Result<Vec<LangToken>, LangError> {
-        let mut tokens = Vec::new();
-        while self.ptr < self.src.len() && !self.is_at_end() {
-            tokens.push(self.emit_token()?)
-        }
-        Ok(tokens)
+        return Ok(res);
     }
 
     /// Utility function used to ouput either a or b
     /// Depending on whether the next character matches the expected
-    fn two_char_token(&mut self, expected: char, matched:TokenType, single:TokenType) -> LangToken {
+    fn two_char_token(
+        &mut self,
+        expected: char,
+        matched: TokenType,
+        single: TokenType,
+    ) -> LangToken {
         if self.match_current(expected) {
             self.make_token(matched)
         } else {
             self.make_token(single)
         }
-
     }
 
     /// Outputs a LangToken with type of ttype param.
-    /// Token source pointer is inferred via Lexer.ptr
+    /// Token source pointer is inferred via Lexer.current
     fn make_token(&self, ttype: TokenType) -> LangToken {
-        // We subtract from ptr because it will already
+        // We subtract from current because it will already
         // be on the next token
-        LangToken::new(ttype, Span::init(self.ptr-1, self.ptr)) 
+        LangToken::new(ttype, Span::start_end(self.start, self.current))
     }
-    
+
     /// returns true if current is EOF char
     fn is_at_end(&self) -> bool {
-        return self.ptr+1 > self.src.len() || self.src.as_bytes()[self.ptr] == b'\0'
+        return self.current + 1 > self.src.len() || self.src.as_bytes()[self.current] == b'\0';
     }
-    
+
     /// Outputs true and advances only if current char matches expected
     fn match_current(&mut self, expected: char) -> bool {
-        if self.is_at_end() || 
-            self.src.as_bytes()[self.ptr] != expected as u8 {
-            return false
+        if self.is_at_end() || self.src.as_bytes()[self.current] != expected as u8 {
+            return false;
         }
-        self.ptr+=1;
+        self.current += 1;
         true
     }
 
     /// Returns u8 char of current pointer position
     fn peek(&self) -> Option<u8> {
-        return self.src.as_bytes().get(self.ptr).copied()
+        return self.src.as_bytes().get(self.current).copied();
     }
 
     /// Returns u8 char of (current pointer position + 1)
     fn peek_next(&self) -> Option<u8> {
-        return self.src.as_bytes().get(self.ptr + 1).copied()
+        return self.src.as_bytes().get(self.current + 1).copied();
     }
 
     /// Skips only ASCII-native whitespace.
@@ -176,12 +248,13 @@ impl Lexer {
         while let Some(c) = self.peek() {
             match c {
                 // Might need to add NL Output soon
-                b'\n' | b'\r' => self.ptr+=1,
+                b'\n' | b'\r' => self.current += 1,
                 // \xOB -> Vertical Tab \xOC -> Form Feed
-                b' ' | b'\t' | b'\x0B' | b'\x0C' => self.ptr+=1,
-                _ => return
+                b' ' | b'\t' | b'\x0B' | b'\x0C' => self.current += 1,
+                _ => {
+                    return;
+                }
             }
         }
-        
     }
 }

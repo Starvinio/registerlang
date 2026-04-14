@@ -1,4 +1,4 @@
-use crate::{ LangError, Parser, Instruction, Chunk, VM };
+use crate::{Chunk, LangError, Parser, VM};
 use std::process;
 
 /// Used to call methods in main() without having to deal with errors seperately
@@ -27,7 +27,6 @@ pub fn test_expr(src: &str, vm: &mut VM) -> Result<(), LangError> {
     vm.interpret(boxed_str)?;
     Ok(())
 }
-
 
 pub fn print_instr(chunk: &Chunk) {
     println!("Instructions\n=======");

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Span, LangError};
+use crate::{LangError, Span};
 /// A single token produced by [`Scanner`]
 #[derive(Debug)]
 pub struct LangToken {
@@ -12,13 +12,10 @@ pub struct LangToken {
 }
 impl LangToken {
     pub fn new(ttype: TokenType, tspan: Span) -> Self {
-        Self {
-            ttype,
-            tspan,
-        }
+        Self { ttype, tspan }
     }
     pub fn invalid_token_x(&self, filler: &str) -> LangError {
-        return LangError::compile(self.tspan, format!("Invalid {}: {}", filler, self.ttype))
+        return LangError::compile(self.tspan, format!("Invalid {}: {}", filler, self.ttype));
     }
 }
 
@@ -26,11 +23,9 @@ impl LangToken {
 /// Token Data (number, booleans, strings) are parsed from src ptr
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
-
     //  === Arithmetic Operators ===
-    
     /// `+`
-    Plus, 
+    Plus,
 
     /// `-`
     Minus,
@@ -39,11 +34,9 @@ pub enum TokenType {
     Star,
 
     /// `/`
-    Slash, 
-          
+    Slash,
 
-    // === Boolean Operators === 
-
+    // === Boolean Operators ===
     /// `!`
     Bang,
 
@@ -54,10 +47,10 @@ pub enum TokenType {
     Eq,
 
     /// `==`
-    EqEq, 
+    EqEq,
 
     /// `<`
-    Lthen, 
+    Lthen,
 
     /// `<=`
     LthenEq,
@@ -68,35 +61,33 @@ pub enum TokenType {
     /// `>=`
     GthenEq,
 
-
-    // === Grouping === 
-
-    /// `(` 
+    // === Grouping ===
+    /// `(`
     LParen,
 
     /// `)`
     RParen,
 
-
-    // === Literals === 
-
+    // === Literals ===
     /// Num literal
     /// Value is parsed by compiler
-    Num, 
+    Num,
+
+    // === Default Identifier ===
+    // Could be variable or function name
+    Identifier,
 
     /// Boolean 'true'
-    True, 
+    True,
 
     /// Boolean 'false'
     False,
 
-    /// Nil / null value 
+    /// Nil / null value
     /// Equals to 'false' on boolean checks
-    NIL,  
+    NIL,
 
-
-    // === Markers === 
-
+    // === Markers ===
     /// End of file marker
     EOF,
 
@@ -129,6 +120,7 @@ impl fmt::Display for TokenType {
 
             // Literals / keywords
             TokenType::Num => "<num>",
+            TokenType::Identifier => "<identifier>",
             TokenType::True => "true",
             TokenType::False => "false",
             TokenType::NIL => "nil",

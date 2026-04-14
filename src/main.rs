@@ -1,12 +1,16 @@
-use std::{env, fs, io::{self, Write}, process};
+use std::{
+    env, fs,
+    io::{self, Write},
+    process,
+};
 
-use registerlang::{ LangError, VM, debug };
+use registerlang::{LangError, VM, debug};
 
 /// Main entry point collects arguments
 /// and runs program accordingly
-fn main() { 
+fn main() {
     let mut vm = VM::init();
-    
+
     debug::quickres(debug::test_expr("2 + 2", &mut vm));
     debug::quickres(debug::test_expr("2 + 2 * 2", &mut vm));
     debug::quickres(debug::test_expr("2 * 2 + 2", &mut vm));
@@ -14,9 +18,10 @@ fn main() {
     debug::quickres(debug::test_expr("2 + 2 >= 4", &mut vm));
     debug::quickres(debug::test_expr("--2 + --2 >= 4", &mut vm));
     debug::quickres(debug::test_expr("(2 + 2) * 4", &mut vm));
-    process::exit(420);
-   
-    let argv:Vec<String> = env::args().collect();
+    debug::quickres(debug::test_expr("(2 + 3 == 5) == true", &mut vm));
+    process::exit(420); // debug exit
+
+    let argv: Vec<String> = env::args().collect();
 
     // Initialize VM
     // Will persist from program start to finish
@@ -32,7 +37,6 @@ fn main() {
     process::exit(0);
 }
 
-
 fn run_repl(vm: &mut VM) {
     println!("REPL Mode: Press ^D to Escape");
     loop {
@@ -42,7 +46,10 @@ fn run_repl(vm: &mut VM) {
         let line_res = match io::stdin().read_line(&mut line) {
             Ok(_) => {
                 // Check for ^D Press
-                if line.len() == 0 {println!(); return}
+                if line.len() == 0 {
+                    println!();
+                    return;
+                }
 
                 run(line.clone(), vm)
             }
@@ -75,12 +82,14 @@ fn run_file(src: &str, vm: &mut VM) {
     }
 }
 
-fn run(content:String, vm:&mut VM) -> Result<(), LangError> {
+fn run(content: String, vm: &mut VM) -> Result<(), LangError> {
     vm.interpret(content.into_boxed_str())
 }
 
 fn print_usage() {
-    eprintln!("Usage:\n
+    eprintln!(
+        "Usage:\n
         <lang-bin> <file path>\t| Run code from file\n
-        <lang-bin>\t\t| Run REPL mode");
+        <lang-bin>\t\t| Run REPL mode"
+    );
 }

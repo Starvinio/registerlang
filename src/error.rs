@@ -1,17 +1,17 @@
 use std::fmt;
 
-use crate::{Span, LangToken};
+use crate::Span;
 
 #[derive(Debug)]
 pub struct LangError {
     espan: Span,
     emsg: String,
-    etype: ErrorType
+    etype: ErrorType,
 }
 #[derive(Debug)]
 pub enum ErrorType {
     CompileError,
-    RuntimeError
+    RuntimeError,
 }
 
 impl fmt::Display for ErrorType {
@@ -29,23 +29,33 @@ impl fmt::Display for ErrorType {
 
 impl LangError {
     pub fn compile(espan: Span, emsg: String) -> LangError {
-        LangError { espan, emsg, etype: ErrorType::CompileError }
+        LangError {
+            espan,
+            emsg,
+            etype: ErrorType::CompileError,
+        }
     }
     pub fn runtime(espan: Span, emsg: String) -> LangError {
-        LangError { espan, emsg, etype: ErrorType::RuntimeError }
+        LangError {
+            espan,
+            emsg,
+            etype: ErrorType::RuntimeError,
+        }
     }
     pub fn exit_code(&self) -> i32 {
         match self.etype {
             ErrorType::CompileError => 65,
-            ErrorType::RuntimeError => 70
+            ErrorType::RuntimeError => 70,
         }
     }
     pub fn print_error(&self, src: &str) {
         const RED: &str = "\x1b[31m";
         const RESET: &str = "\x1b[0m";
         let (line, col) = self.span_to_loc(src);
-        println!("{}[{}:{}] {}: {}{}", RED, line, col, self.etype, self.emsg, RESET)
-
+        println!(
+            "{}[{}:{}] {}: {}{}",
+            RED, line, col, self.etype, self.emsg, RESET
+        )
     }
     fn span_to_loc(&self, src: &str) -> (u32, u32) {
         let mut current_line = 1;
@@ -54,7 +64,7 @@ impl LangError {
         while src_ptr < src.len() {
             if src_ptr as u32 == self.espan.start_u32() {
                 let col = (src_ptr - line_ptr) as u32;
-                return (current_line as u32, col) 
+                return (current_line as u32, col);
             }
             if src.as_bytes()[src_ptr] == b'\n' {
                 current_line += 1;
@@ -63,6 +73,6 @@ impl LangError {
             src_ptr += 1;
         }
         // Never reached, sentinel Value
-        return (0, 0)
+        return (0, 0);
     }
 }

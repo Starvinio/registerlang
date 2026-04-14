@@ -1,16 +1,16 @@
 use std::fmt;
 
-use crate::{LangToken, TokenType, LangError};
+use crate::{LangError, LangToken, TokenType};
 
 #[derive(Clone, Copy)]
 pub struct Instruction(u32);
 
-/* 
-      Instruction:
-      [opcode] [   x  ] [   y  ] [   z  ]
-      12345678 12345678 12345678 12345678
-          1        2       3         4
- */
+/*
+     Instruction:
+     [opcode] [   x  ] [   y  ] [   z  ]
+     12345678 12345678 12345678 12345678
+         1        2       3         4
+*/
 
 impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -18,38 +18,55 @@ impl fmt::Display for Instruction {
 
         match opcode {
             OpCode::Load => {
-                write!(f, "{:<8} {:>3} {:>3};", format!("{:?}", opcode), self.x(), self.yz())
+                write!(
+                    f,
+                    "{:<8} {:>3} {:>3};",
+                    format!("{:?}", opcode),
+                    self.x(),
+                    self.yz()
+                )
             }
             _ => {
-                write!(f, "{:<8} {:>3} {:>3} {:>3};", format!("{:?}", opcode), self.x(), self.y(), self.z())
+                write!(
+                    f,
+                    "{:<8} {:>3} {:>3} {:>3};",
+                    format!("{:?}", opcode),
+                    self.x(),
+                    self.y(),
+                    self.z()
+                )
             }
         }
     }
 }
 
 impl Instruction {
-    pub fn opcode(self) -> u8 { (self.0 >> 24) as u8}
-    pub fn x(self) -> u8 { (self.0 >> 16) as u8 }
-    pub fn y(self) -> u8 { (self.0 >> 8) as u8 }
-    pub fn z(self) -> u8 { self.0 as u8 }
-    
-    pub fn yz(self) -> u16 { self.0 as u16 }
-
-    pub fn make_xyz(opcode: u8, x: u8, y: u8, z:u8) -> Self {
-        Instruction (
-            (opcode as u32) << 24 | (x as u32) << 16 | (y as u32) << 8 | z as u32 
-        )
+    pub fn opcode(self) -> u8 {
+        (self.0 >> 24) as u8
+    }
+    pub fn x(self) -> u8 {
+        (self.0 >> 16) as u8
+    }
+    pub fn y(self) -> u8 {
+        (self.0 >> 8) as u8
+    }
+    pub fn z(self) -> u8 {
+        self.0 as u8
     }
 
-    pub fn make_xy(opcode: u8, x: u8, y: u16) -> Self { 
-        Instruction (
-            (opcode as u32) << 24 | (x as u32) << 16 | y as u32   
-        )
+    pub fn yz(self) -> u16 {
+        self.0 as u16
+    }
+
+    pub fn make_xyz(opcode: u8, x: u8, y: u8, z: u8) -> Self {
+        Instruction((opcode as u32) << 24 | (x as u32) << 16 | (y as u32) << 8 | z as u32)
+    }
+
+    pub fn make_xy(opcode: u8, x: u8, y: u16) -> Self {
+        Instruction((opcode as u32) << 24 | (x as u32) << 16 | y as u32)
     }
     pub fn make_xx(opcode: u8, x: u8) -> Self {
-        Instruction (
-            (opcode as u32) << 24 | (x as u32) << 16 | (x as u32) << 8
-        )
+        Instruction((opcode as u32) << 24 | (x as u32) << 16 | (x as u32) << 8)
     }
 }
 
@@ -70,7 +87,7 @@ pub enum OpCode {
 }
 impl TryFrom<u8> for OpCode {
     type Error = u8;
-    
+
     fn try_from(byte: u8) -> Result<Self, Self::Error> {
         match byte {
             0 => Ok(OpCode::Return),
@@ -99,9 +116,13 @@ impl OpCode {
             TokenType::EqEq => OpCode::Equal,
             TokenType::Lthen | TokenType::Gthen => OpCode::Lthen,
             TokenType::LthenEq | TokenType::GthenEq => OpCode::Lequal,
-            _ => return Err(LangError::compile(op.tspan, format!("Failed to convert operator '{}' to bytecode", op.ttype)))
+            _ => {
+                return Err(LangError::compile(
+                    op.tspan,
+                    format!("Failed to convert operator '{}' to bytecode", op.ttype),
+                ));
+            }
         };
         Ok(opcode)
     }
-
 }

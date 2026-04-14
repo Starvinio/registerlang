@@ -11,27 +11,41 @@ pub struct Parser {
     current: LangToken,
     chunk: Chunk,
     stack_top: u8,
-    invert_op: bool,
 }
 impl Parser {
     /// Init function already lexes the first two tokens
     /// into [`current`](Self::current) and [`previous`](Self::previous)
     /// Since lexing tokens can fail, function returns [`Result<>`]
     pub fn init(src: Box<str>) -> Result<Self, LangError> {
-        if src.len() < 1 { return Err(LangError::compile(Span::init(0, 0), "Tried to compile empty file".to_string())) }
+        if src.len() < 1 {
+            return Err(LangError::compile(
+                Span::zero(),
+                "Tried to compile empty file".to_string(),
+            ));
+        }
         let mut lexer = Lexer::init(src);
         let previous = lexer.emit_token()?;
         let current = lexer.emit_token()?;
-        Ok(Self { lexer, previous, current, chunk:Chunk::init(), stack_top: 0, invert_op: false })
+        Ok(Self {
+            lexer,
+            previous,
+            current,
+            chunk: Chunk::init(),
+            stack_top: 0,
+        })
     }
 
     /// Entry point for compilation phase of the interpreter
     /// Function consumes parser
     pub fn compile(mut self) -> Result<Chunk, LangError> {
         self.expression()?;
-        self.consume(TokenType::EOF, self.current.tspan, "Expect end of expression.")?;
+        self.consume(
+            TokenType::EOF,
+            self.current.tspan,
+            "Expect end of expression.",
+        )?;
 
-        Ok( self.chunk )
+        Ok(self.chunk)
     }
 
     /// Replaces [`previous`](Self::previous) with current
@@ -49,24 +63,14 @@ impl Parser {
         Ok(())
     }
 
-    fn consume(&mut self, expected: TokenType, span:Span, message:&str) -> Result<(), LangError> {
+    fn consume(&mut self, expected: TokenType, span: Span, message: &str) -> Result<(), LangError> {
         if self.current.ttype == expected {
-            self.advance();
+            self.advance()?;
             Ok(())
         } else {
             Err(LangError::compile(span, message.to_string()))
         }
-
     }
-
-    fn emit_instr(&mut self, instr:Instruction) {
-        self.chunk.add_instruction(instr, self.previous.tspan);
-    }
-    fn emit_instrs(&mut self, instr1:Instruction, instr2:Instruction) {
-        self.chunk.add_instruction(instr1, self.previous.tspan);
-        self.chunk.add_instruction(instr2, self.previous.tspan);
-    }
-
 
     /// Returns a valid register index for usage as u8
     /// Also increments structure variable stack top
@@ -92,14 +96,36 @@ impl Parser {
     fn number(&mut self, span: Span) -> Result<u8, LangError> {
         let number: f32 = match self.lexer.src[span.start()..span.end()].parse::<f32>() {
             Ok(f) => f,
-            Err(_) => return Err(LangError::compile(span, "Invalid numeric value".to_string()))
+            Err(_) => {
+                return Err(LangError::compile(
+                    span,
+                    "Invalid numeric value".to_string(),
+                ));
+            }
         };
         let const_idx = self.chunk.add_constant(Value::Num(number));
-        
+
         let reg = self.alloc_register();
-        self.chunk.add_instruction(Instruction::make_xy(OpCode::Load as u8, reg, const_idx), span);
+        self.chunk.add_instruction(
+            Instruction::make_xy(OpCode::Load as u8, reg, const_idx),
+            span,
+        );
         Ok(reg)
-    
+    }
+
+    fn boolean(&mut self, span: Span) -> u8 {
+        let val = match self.previous.ttype {
+            TokenType::True => true,
+            _ => false,
+        };
+        let const_idx = self.chunk.add_constant(Value::Bool(val));
+
+        let reg = self.alloc_register();
+        self.chunk.add_instruction(
+            Instruction::make_xy(OpCode::Load as u8, reg, const_idx),
+            span,
+        );
+        reg
     }
 
     /// Helper function to start recursive execution of [`expression_bp`](Self::expression_bp)
@@ -114,6 +140,7 @@ impl Parser {
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
+            TokenType::True | TokenType::False => self.boolean(self.previous.tspan),
             TokenType::LParen => {
                 let l_span = self.previous.tspan;
                 self.advance()?;
@@ -121,13 +148,16 @@ impl Parser {
                 self.consume(TokenType::RParen, l_span, "Unmatched closing delimiter '('")?;
                 res
             }
-            _ => { // If lhs is not a number, it can only be a prefix operator or '('
+            _ => {
+                // If lhs is not a number, it can only be a prefix operator or '('
                 let ((), r_bp) = match self.prefix_bp() {
-                    Some(res) => { res },
-                    None => return Err(LangError::compile(
-                        self.previous.tspan,
-                        format!("Unexpected start of expression: {:?}", self.previous)
-                        ))
+                    Some(res) => res,
+                    None => {
+                        return Err(LangError::compile(
+                            self.previous.tspan,
+                            format!("Unexpected start of expression: {:?}", self.previous),
+                        ));
+                    }
                 };
                 self.advance()?;
                 let rhs = self.expression_bp(r_bp)?;
@@ -137,22 +167,22 @@ impl Parser {
         loop {
             let (l_bp, r_bp, invert) = match self.infix_bp() {
                 Some(bp) => bp,
-                None => break
+                None => break,
             };
 
-            if l_bp < min_bp { break }
+            if l_bp < min_bp {
+                break;
+            }
 
-            // store pos of lhs for better debugging
-            let lhs_start = self.previous.tspan.start();
+            let expr_start = self.previous.tspan.start(); // stored for better debugging
 
-            // store opcode of current operator
             let opcode = OpCode::op2opcode(&self.current)?;
 
             // Advance twice to that prev = num and curr = op
             self.advance_twice()?;
 
             let rhs_reg = self.expression_bp(r_bp)?;
-            let expr_span = Span::init(lhs_start, self.previous.tspan.end() - lhs_start);
+            let expr_span = Span::start_end(expr_start, self.previous.tspan.end());
 
             lhs_reg = self.binary_op(opcode, lhs_reg, rhs_reg, expr_span, invert);
             self.free_register();
@@ -168,8 +198,9 @@ impl Parser {
         let bp = match &self.current.ttype {
             TokenType::Eq => (2, 1, false),
 
-            TokenType::EqEq | TokenType::Lthen |
-                TokenType::LthenEq | TokenType::BangEq  => (3, 4, false),
+            TokenType::EqEq | TokenType::Lthen | TokenType::LthenEq | TokenType::BangEq => {
+                (3, 4, false)
+            }
 
             // a > b => b < a
             TokenType::Gthen | TokenType::GthenEq => (3, 4, true),
@@ -177,7 +208,7 @@ impl Parser {
             TokenType::Plus | TokenType::Minus => (5, 6, false),
 
             TokenType::Star | TokenType::Slash => (7, 8, false),
-            _ => return None
+            _ => return None,
         };
         Some(bp)
     }
@@ -186,29 +217,30 @@ impl Parser {
     /// Also handles all cases for an invalid lhs token
     fn prefix_bp(&self) -> Option<((), u8)> {
         let bp = match self.previous.ttype {
-            TokenType::Plus | TokenType::Minus |
-                TokenType::Bang => ((), 8),
-            _ => return None
+            TokenType::Plus | TokenType::Minus | TokenType::Bang => ((), 8),
+            _ => return None,
         };
         Some(bp)
     }
 
-        
-    fn binary_op(&mut self, op: OpCode, lhs_reg: u8, rhs_reg: u8, span: Span, invert:bool) -> u8 {
+    fn binary_op(&mut self, op: OpCode, lhs_reg: u8, rhs_reg: u8, span: Span, invert: bool) -> u8 {
         if invert {
-            self.chunk.add_instruction( Instruction::make_xyz(op as u8, lhs_reg, rhs_reg, lhs_reg), span );
+            self.chunk.add_instruction(
+                Instruction::make_xyz(op as u8, lhs_reg, rhs_reg, lhs_reg),
+                span,
+            );
         } else {
-            self.chunk.add_instruction( Instruction::make_xyz(op as u8, lhs_reg, lhs_reg, rhs_reg), span );
+            self.chunk.add_instruction(
+                Instruction::make_xyz(op as u8, lhs_reg, lhs_reg, rhs_reg),
+                span,
+            );
         }
-        lhs_reg 
+        lhs_reg
     }
 
     fn unary_op(&mut self, op: OpCode, reg: u8, span: Span) -> u8 {
-        self.chunk.add_instruction( Instruction::make_xx(op as u8, reg), span );
-        reg 
+        self.chunk
+            .add_instruction(Instruction::make_xx(op as u8, reg), span);
+        reg
     }
-
 }
-
-
-

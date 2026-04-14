@@ -1,9 +1,9 @@
+use crate::{Chunk, LangError, OpCode, Parser, Span, Value, debug};
 use std::collections::HashMap;
-use crate::{Chunk, LangError, OpCode, Span, Parser, Value, debug};
 
 /// Current upper bound for registers
 /// due to storing dest as single byte
-const MAX_REGISTERS: usize = 256; 
+const MAX_REGISTERS: usize = 256;
 
 pub struct VM {
     registers: Vec<Value>,
@@ -13,17 +13,16 @@ pub struct VM {
 
 impl VM {
     pub fn init() -> Self {
-        return Self { 
+        return Self {
             registers: vec![Value::None; MAX_REGISTERS],
             _globals: HashMap::new(),
-            ip: 0 
-        }
+            ip: 0,
+        };
     }
 
     pub fn interpret(&mut self, src: Box<str>) -> Result<(), LangError> {
-
         // Compile source to bytecode and store in chunk
-        let chunk = Parser::init(src)?.compile()?; 
+        let chunk = Parser::init(src)?.compile()?;
 
         debug::print_instr(&chunk);
 
@@ -41,27 +40,30 @@ impl VM {
         let res = match OpCode::try_from(instr.opcode()) {
             Ok(OpCode::Return) => self.ret(chunk, instr.x())?,
             Ok(OpCode::Load) => self.load(chunk, instr.x(), instr.yz()),
-            Ok(OpCode::Add)=> self.add(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Sub)=> self.sub(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Mul)=> self.mul(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Div)=> self.div(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Neg) => self.neg(chunk, instr.x(), instr.y())?, 
-            Ok(OpCode::Not)=> todo!("need to add NOT"),
-            Ok(OpCode::Equal)=> self.equal(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Lthen)=> self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
-            Ok(OpCode::Lequal)=> self.lequal(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Add) => self.add(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Sub) => self.sub(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Mul) => self.mul(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Div) => self.div(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Neg) => self.neg(chunk, instr.x(), instr.y())?,
+            Ok(OpCode::Not) => todo!("need to add NOT"),
+            Ok(OpCode::Equal) => self.equal(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Lthen) => self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Lequal) => self.lequal(chunk, instr.x(), instr.y(), instr.z())?,
 
-            Err(b) => return Err(self.err_from_string(chunk.get_span(self.ip), format!("Invalid OpCode: {}", b)))
+            Err(b) => {
+                return Err(
+                    self.err_from_string(chunk.get_span(self.ip), format!("Invalid OpCode: {}", b))
+                );
+            }
         };
-        return Ok(res)
-
+        return Ok(res);
     }
 
-    fn neg(&mut self, chunk:&Chunk, dest:u8, a:u8) -> Result<(), LangError> {
+    fn neg(&mut self, chunk: &Chunk, dest: u8, a: u8) -> Result<(), LangError> {
         println!("register[{dest}] = -{:?}", self.registers[a as usize]);
         self.registers[dest as usize] = match self.registers[a as usize].val2neg() {
             Ok(f) => Value::Num(f),
-            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         };
         Ok(())
     }
@@ -82,7 +84,7 @@ impl VM {
 
         println!("=================================");
     }
-    fn ret(&mut self, _chunk:&Chunk, dest:u8) -> Result<(), LangError> {
+    fn ret(&mut self, _chunk: &Chunk, dest: u8) -> Result<(), LangError> {
         println!("return: {:?}", self.registers[dest as usize]);
         Ok(())
     }
@@ -90,75 +92,94 @@ impl VM {
         println!("Loading {:?}...", chunk.constants[idx as usize]);
         self.registers[dest as usize] = chunk.constants[idx as usize].clone();
     }
-    fn add(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn add(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] + self.registers[b as usize];
-        println!("register[{dest}] = {:?} + {:?} = {:?}", self.registers[a as usize], self.registers[b as usize], result);
+        println!(
+            "register[{dest}] = {:?} + {:?} = {:?}",
+            self.registers[a as usize], self.registers[b as usize], result
+        );
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         }
         Ok(())
     }
-    fn sub(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn sub(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] - self.registers[b as usize];
-        println!("register[{dest}] = {:?} - {:?} = {:?}", self.registers[a as usize], self.registers[b as usize], result);
+        println!(
+            "register[{dest}] = {:?} - {:?} = {:?}",
+            self.registers[a as usize], self.registers[b as usize], result
+        );
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         }
         Ok(())
     }
-    fn mul(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn mul(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         //println!("working with registers: {:?}", self.registers);
         let result = self.registers[a as usize] * self.registers[b as usize];
-        println!("register[{dest}] = {:?} * {:?} = {:?}", self.registers[a as usize], self.registers[b as usize], result);
+        println!(
+            "register[{dest}] = {:?} * {:?} = {:?}",
+            self.registers[a as usize], self.registers[b as usize], result
+        );
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         }
         Ok(())
     }
-    fn div(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn div(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] / self.registers[b as usize];
-        println!("register[{dest}] = {:?} / {:?} = {:?}", self.registers[a as usize], self.registers[b as usize], result);
+        println!(
+            "register[{dest}] = {:?} / {:?} = {:?}",
+            self.registers[a as usize], self.registers[b as usize], result
+        );
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
-            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s))
+            Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         }
         Ok(())
     }
-    fn equal(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8)-> Result<(), LangError> {
+    fn equal(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let a_val = self.registers[a as usize];
         let b_val = self.registers[b as usize];
         let res_bool = match (a_val, b_val) {
             (Value::Num(i), Value::Num(j)) => i == j,
             (Value::Bool(i), Value::Bool(j)) => i == j,
-            (Value::None, Value::Bool(i)) | (Value::Bool(i), Value::None) => { i == false },
-            _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '==' comparison"))
-
+            (Value::None, Value::Bool(i)) | (Value::Bool(i), Value::None) => i == false,
+            _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '==' comparison")),
         };
         self.registers[dest as usize] = Value::Bool(res_bool);
         Ok(())
     }
-    fn lthen(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn lthen(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i < j,
-                _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '<' comparison"))
-            }
+                _ => {
+                    return Err(
+                        self.err_from_str(chunk.get_span(self.ip), "Invalid '<' comparison")
+                    );
+                }
+            },
         );
         Ok(())
     }
-    fn lequal(&mut self, chunk:&Chunk, dest:u8, a:u8, b:u8) -> Result<(), LangError> {
+    fn lequal(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         self.registers[dest as usize] = Value::Bool(
             match (self.registers[a as usize], self.registers[b as usize]) {
                 (Value::Num(i), Value::Num(j)) => i <= j,
-                _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '>' comparison"))
-            }
+                _ => {
+                    return Err(
+                        self.err_from_str(chunk.get_span(self.ip), "Invalid '>' comparison")
+                    );
+                }
+            },
         );
         Ok(())
     }

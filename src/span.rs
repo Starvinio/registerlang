@@ -5,14 +5,20 @@
 #[derive(Debug, Clone, Copy)]
 pub struct Span(u32, u16);
 impl Span {
-    pub fn init(start: usize, len: usize) -> Self {
+    pub fn zero() -> Self {
+        Span(0, 0)
+    }
+    pub fn start_len(start: usize, len: usize) -> Self {
         Span(start as u32, len as u16)
+    }
+    pub fn start_end(start: usize, end: usize) -> Self {
+        Span(start as u32, (end - start) as u16)
     }
     pub fn start(&self) -> usize {
         self.0 as usize
     }
     pub fn start_u32(&self) -> u32 {
-        self.0  
+        self.0
     }
     pub fn len(&self) -> usize {
         self.1 as usize

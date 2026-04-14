@@ -1,28 +1,28 @@
-use std::ops::{Add, Sub, Mul, Div};
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Value {
     Num(f32),
     Bool(bool),
-    None
+    None,
 }
 impl Value {
     pub fn val2num(&self) -> Result<f32, String> {
         match self {
             Value::Num(f) => Ok(f.clone()),
-            _ => Err(format!("Tried to parse {:?} into Number(f32)", self))
+            _ => Err(format!("Tried to parse {:?} into Number(f32)", self)),
         }
     }
     pub fn val2bool(&self) -> Result<bool, String> {
         match self {
             Value::Bool(b) => Ok(b.clone()),
-            _ => Err(format!("Tried to parse {:?} into Number(f32)", self))
+            _ => Err(format!("Tried to parse {:?} into Number(f32)", self)),
         }
     }
     pub fn val2neg(&self) -> Result<f32, String> {
         match self {
             Value::Num(f) => Ok(-f.clone()),
-            _ => Err(format!("Tried to negate value of type {:?}", self))
+            _ => Err(format!("Tried to negate value of type {:?}", self)),
         }
     }
 }
@@ -32,7 +32,7 @@ impl Add for Value {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a + b)),
-            _ => Err(format!("Tried to add invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!("Tried to add invalid types: {:?}, {:?}", self, rhs)),
         }
     }
 }
@@ -41,7 +41,10 @@ impl Sub for Value {
     fn sub(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a - b)),
-            _ => Err(format!("Tried to subtract invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!(
+                "Tried to subtract invalid types: {:?}, {:?}",
+                self, rhs
+            )),
         }
     }
 }
@@ -50,7 +53,10 @@ impl Mul for Value {
     fn mul(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a * b)),
-            _ => Err(format!("Tried to multiply invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!(
+                "Tried to multiply invalid types: {:?}, {:?}",
+                self, rhs
+            )),
         }
     }
 }
@@ -59,14 +65,10 @@ impl Div for Value {
     fn div(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Value::Num(a), Value::Num(b)) => return Ok(Value::Num(a / b)),
-            _ => Err(format!("Tried to divide invalid types: {:?}, {:?}", self, rhs))
+            _ => Err(format!(
+                "Tried to divide invalid types: {:?}, {:?}",
+                self, rhs
+            )),
         }
     }
 }
-
-
-
-
-
-
-
