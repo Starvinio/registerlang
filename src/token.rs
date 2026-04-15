@@ -94,6 +94,10 @@ pub enum TokenType {
     /// Newline Marker
     /// Produced by both '\n' and '\r'
     NL,
+
+    // === Language specific keywords ===
+    /// For loop keyword
+    For,
 }
 impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -124,6 +128,8 @@ impl fmt::Display for TokenType {
             TokenType::True => "true",
             TokenType::False => "false",
             TokenType::NIL => "nil",
+
+            TokenType::For => "for",
 
             // Markers
             TokenType::EOF => "<eof>",

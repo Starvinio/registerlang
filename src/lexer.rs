@@ -24,7 +24,7 @@ pub struct Lexer {
 
 impl Lexer {
     /// Init that loads [`Box<str>`] into [`src`](Self::src)
-    /// and initializes ['current'](Self::current) to 0
+    /// and initializes [`current`](Self::current) to 0
     pub fn init(src: Box<str>) -> Self {
         Self {
             src,
@@ -69,11 +69,17 @@ impl Lexer {
         LangToken::new(self.identifier_type(&span), span)
     }
 
+    /// Lexing Trie consisting of nested match arms
+    /// Makes use of [`check_keyword`](Self::check_keyword)
     fn identifier_type(&self, span: &Span) -> TokenType {
         let ttype = match self.src.as_bytes()[span.start()] {
-            b't' => self.check_keyword(self.current, 3, "rue", TokenType::True),
-            b'f' => self.check_keyword(self.current, 4, "alse", TokenType::False),
-            b'n' => self.check_keyword(self.current, 2, "il", TokenType::NIL),
+            b't' => self.check_keyword(1, 3, "rue", TokenType::True),
+            b'f' => match self.src.as_bytes()[span.start() + 1] {
+                b'a' => self.check_keyword(2, 3, "lse", TokenType::False),
+                b'o' => self.check_keyword(2, 1, "r", TokenType::For),
+                _ => TokenType::Identifier,
+            },
+            b'n' => self.check_keyword(1, 2, "il", TokenType::NIL),
             _ => TokenType::Identifier,
         };
         ttype
@@ -94,7 +100,12 @@ impl Lexer {
         rest: &str,
         res_type: TokenType,
     ) -> TokenType {
-        res_type
+        if start + len == self.current - self.start
+            && &self.src[self.start + start..self.current] == rest
+        {
+            return res_type;
+        }
+        TokenType::Identifier
     }
 
     // Skips all digits until current is no longer a digit
