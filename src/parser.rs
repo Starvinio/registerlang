@@ -140,7 +140,9 @@ impl Parser {
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
-            TokenType::True | TokenType::False => self.boolean(self.previous.tspan),
+            TokenType::True | TokenType::False | TokenType::NIL => {
+                self.boolean(self.previous.tspan)
+            }
             TokenType::LParen => {
                 let l_span = self.previous.tspan;
                 self.advance()?;
@@ -149,7 +151,6 @@ impl Parser {
                 res
             }
             _ => {
-                // If lhs is not a number, it can only be a prefix operator or '('
                 let ((), r_bp) = match self.prefix_bp() {
                     Some(res) => res,
                     None => {
@@ -159,9 +160,13 @@ impl Parser {
                         ));
                     }
                 };
+                let opcode = match self.previous.ttype {
+                    TokenType::Minus => OpCode::Neg,
+                    _ => OpCode::Not, // Fine because we only have 2 prefix operators
+                };
                 self.advance()?;
                 let rhs = self.expression_bp(r_bp)?;
-                self.unary_op(OpCode::Neg, rhs, self.previous.tspan)
+                self.unary_op(opcode, rhs, self.previous.tspan)
             }
         };
         loop {

@@ -14,7 +14,7 @@ pub struct VM {
 impl VM {
     pub fn init() -> Self {
         return Self {
-            registers: vec![Value::None; MAX_REGISTERS],
+            registers: vec![Value::NIL; MAX_REGISTERS],
             _globals: HashMap::new(),
             ip: 0,
         };
@@ -31,7 +31,7 @@ impl VM {
             self.ip += 1
         }
         println!("Result: {:?}", self.registers[0]);
-        self.registers = vec![Value::None; MAX_REGISTERS];
+        self.registers = vec![Value::NIL; MAX_REGISTERS];
         self.ip = 0;
         Ok(())
     }
@@ -45,7 +45,7 @@ impl VM {
             Ok(OpCode::Mul) => self.mul(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Div) => self.div(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Neg) => self.neg(chunk, instr.x(), instr.y())?,
-            Ok(OpCode::Not) => todo!("need to add NOT"),
+            Ok(OpCode::Not) => self.not(chunk, instr.x(), instr.y()),
             Ok(OpCode::Equal) => self.equal(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Lthen) => self.lthen(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Lequal) => self.lequal(chunk, instr.x(), instr.y(), instr.z())?,
@@ -59,8 +59,11 @@ impl VM {
         return Ok(res);
     }
 
+    fn not(&mut self, chunk: &Chunk, dest: u8, a: u8) {
+        self.registers[dest as usize] = Value::Bool(self.registers[a as usize].val2not());
+    }
+
     fn neg(&mut self, chunk: &Chunk, dest: u8, a: u8) -> Result<(), LangError> {
-        println!("register[{dest}] = -{:?}", self.registers[a as usize]);
         self.registers[dest as usize] = match self.registers[a as usize].val2neg() {
             Ok(f) => Value::Num(f),
             Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
@@ -89,15 +92,16 @@ impl VM {
         Ok(())
     }
     fn load(&mut self, chunk: &Chunk, dest: u8, idx: u16) {
-        println!("Loading {:?}...", chunk.constants[idx as usize]);
+        //println!("Loading {:?}...", chunk.constants[idx as usize]);
         self.registers[dest as usize] = chunk.constants[idx as usize].clone();
     }
     fn add(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] + self.registers[b as usize];
-        println!(
-            "register[{dest}] = {:?} + {:?} = {:?}",
-            self.registers[a as usize], self.registers[b as usize], result
-        );
+        //println!(
+        //    //"register[{dest}] = {:?} + {:?} = {:?}",
+        //    self.registers[a as usize],
+        //    self.registers[b as usize], result
+        //);
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
@@ -107,10 +111,11 @@ impl VM {
     }
     fn sub(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] - self.registers[b as usize];
-        println!(
-            "register[{dest}] = {:?} - {:?} = {:?}",
-            self.registers[a as usize], self.registers[b as usize], result
-        );
+        //println!(
+        //    //"register[{dest}] = {:?} - {:?} = {:?}",
+        //    self.registers[a as usize],
+        //    self.registers[b as usize], result
+        //);
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
@@ -121,10 +126,11 @@ impl VM {
     fn mul(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         //println!("working with registers: {:?}", self.registers);
         let result = self.registers[a as usize] * self.registers[b as usize];
-        println!(
-            "register[{dest}] = {:?} * {:?} = {:?}",
-            self.registers[a as usize], self.registers[b as usize], result
-        );
+        //println!(
+        //    "register[{dest}] = {:?} * {:?} = {:?}",
+        //    self.registers[a as usize],
+        //    self.registers[b as usize], result
+        //);
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
@@ -134,10 +140,11 @@ impl VM {
     }
     fn div(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] / self.registers[b as usize];
-        println!(
-            "register[{dest}] = {:?} / {:?} = {:?}",
-            self.registers[a as usize], self.registers[b as usize], result
-        );
+        //println!(
+        //    "register[{dest}] = {:?} / {:?} = {:?}",
+        //    self.registers[a as usize],
+        //    self.registers[b as usize], result
+        //);
 
         match result {
             Ok(val) => self.registers[dest as usize] = val,
@@ -151,7 +158,7 @@ impl VM {
         let res_bool = match (a_val, b_val) {
             (Value::Num(i), Value::Num(j)) => i == j,
             (Value::Bool(i), Value::Bool(j)) => i == j,
-            (Value::None, Value::Bool(i)) | (Value::Bool(i), Value::None) => i == false,
+            (Value::NIL, Value::Bool(i)) | (Value::Bool(i), Value::NIL) => i == false,
             _ => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid '==' comparison")),
         };
         self.registers[dest as usize] = Value::Bool(res_bool);

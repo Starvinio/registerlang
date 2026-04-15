@@ -19,6 +19,8 @@ fn main() {
     debug::quickres(debug::test_expr("--2 + --2 >= 4", &mut vm));
     debug::quickres(debug::test_expr("(2 + 2) * 4", &mut vm));
     debug::quickres(debug::test_expr("(2 + 3 == 5) == true", &mut vm));
+    debug::quickres(debug::test_expr("false == !true", &mut vm));
+
     process::exit(420); // debug exit
 
     let argv: Vec<String> = env::args().collect();

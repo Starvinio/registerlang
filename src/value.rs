@@ -4,7 +4,7 @@ use std::ops::{Add, Div, Mul, Sub};
 pub enum Value {
     Num(f32),
     Bool(bool),
-    None,
+    NIL,
 }
 impl Value {
     pub fn val2num(&self) -> Result<f32, String> {
@@ -23,6 +23,13 @@ impl Value {
         match self {
             Value::Num(f) => Ok(-f.clone()),
             _ => Err(format!("Tried to negate value of type {:?}", self)),
+        }
+    }
+    pub fn val2not(&self) -> bool {
+        match self {
+            Value::Bool(f) if !f => true,
+            Value::NIL => true,
+            _ => false,
         }
     }
 }
