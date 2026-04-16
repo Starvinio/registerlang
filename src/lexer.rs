@@ -177,6 +177,7 @@ impl Lexer {
             b'-' => self.make_token(TokenType::Minus),
             b'*' => self.make_token(TokenType::Star),
             b'/' => self.make_token(TokenType::Slash),
+            b'^' => self.make_token(TokenType::Caret),
 
             // Boolean Operators
             b'!' => self.two_char_token('=', TokenType::BangEq, TokenType::Bang),

@@ -36,6 +36,9 @@ pub enum TokenType {
     /// `/`
     Slash,
 
+    /// `^`
+    Caret,
+
     // === Boolean Operators ===
     /// `!`
     Bang,
@@ -95,7 +98,7 @@ pub enum TokenType {
     /// Produced by both '\n' and '\r'
     NL,
 
-    // === Language specific keywords ===
+    // === Language specific keyword ===
     /// For loop keyword
     For,
 }
@@ -107,6 +110,7 @@ impl fmt::Display for TokenType {
             TokenType::Minus => "-",
             TokenType::Star => "*",
             TokenType::Slash => "/",
+            TokenType::Caret => "^",
 
             // Boolean
             TokenType::Bang => "!",

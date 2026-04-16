@@ -44,6 +44,7 @@ impl VM {
             Ok(OpCode::Sub) => self.sub(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Mul) => self.mul(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Div) => self.div(chunk, instr.x(), instr.y(), instr.z())?,
+            Ok(OpCode::Pow) => self.pow(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Neg) => self.neg(chunk, instr.x(), instr.y())?,
             Ok(OpCode::Not) => self.not(chunk, instr.x(), instr.y()),
             Ok(OpCode::Equal) => self.equal(chunk, instr.x(), instr.y(), instr.z())?,
@@ -92,7 +93,7 @@ impl VM {
         Ok(())
     }
     fn load(&mut self, chunk: &Chunk, dest: u8, idx: u16) {
-        //println!("Loading {:?}...", chunk.constants[idx as usize]);
+        println!("Loading {:?}...", chunk.constants[idx as usize]);
         self.registers[dest as usize] = chunk.constants[idx as usize].clone();
     }
     fn add(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
@@ -138,6 +139,37 @@ impl VM {
         }
         Ok(())
     }
+
+    fn pow(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
+        let (base, exponent) = match (self.registers[a as usize], self.registers[b as usize]) {
+            (Value::Num(base), Value::Num(exponent)) => {
+                if exponent == 0.0 {
+                    self.registers[dest as usize] = Value::Num(1.0);
+                    return Ok(());
+                }
+                if exponent % 1.0 != 0.0 {
+                    return Err(
+                        self.err_from_str(chunk.get_span(self.ip), "Exponent must be whole number")
+                    );
+                }
+                if base == 0.0 {
+                    self.registers[dest as usize] = Value::Num(0.0);
+                    return Ok(());
+                }
+                (base, exponent)
+            }
+            e => return Err(self.err_from_str(chunk.get_span(self.ip), "Invalid Exponent: {e}")),
+        };
+
+        let mut res = base;
+        for i in 1..(exponent as usize) {
+            res = res * base;
+        }
+
+        self.registers[dest as usize] = Value::Num(res);
+        Ok(())
+    }
+
     fn div(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] / self.registers[b as usize];
         //println!(

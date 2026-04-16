@@ -79,11 +79,12 @@ pub enum OpCode {
     Sub = 3,
     Mul = 4,
     Div = 5,
-    Neg = 6,
-    Not = 7,
-    Equal = 8,
-    Lthen = 9,
-    Lequal = 10,
+    Pow = 6,
+    Neg = 7,
+    Not = 8,
+    Equal = 9,
+    Lthen = 10,
+    Lequal = 11,
 }
 impl TryFrom<u8> for OpCode {
     type Error = u8;
@@ -96,11 +97,12 @@ impl TryFrom<u8> for OpCode {
             3 => Ok(OpCode::Sub),
             4 => Ok(OpCode::Mul),
             5 => Ok(OpCode::Div),
-            6 => Ok(OpCode::Neg),
-            7 => Ok(OpCode::Not),
-            8 => Ok(OpCode::Equal),
-            9 => Ok(OpCode::Lthen),
-            10 => Ok(OpCode::Lequal),
+            6 => Ok(OpCode::Pow),
+            7 => Ok(OpCode::Neg),
+            8 => Ok(OpCode::Not),
+            9 => Ok(OpCode::Equal),
+            10 => Ok(OpCode::Lthen),
+            11 => Ok(OpCode::Lequal),
             unknown => Err(unknown),
         }
     }
@@ -112,6 +114,7 @@ impl OpCode {
             TokenType::Minus => OpCode::Sub,
             TokenType::Star => OpCode::Mul,
             TokenType::Slash => OpCode::Div,
+            TokenType::Caret => OpCode::Pow,
             TokenType::Bang => OpCode::Not,
             TokenType::EqEq => OpCode::Equal,
             TokenType::Lthen | TokenType::Gthen => OpCode::Lthen,

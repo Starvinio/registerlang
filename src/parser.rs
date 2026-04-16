@@ -134,9 +134,12 @@ impl Parser {
         self.expression_bp(0)?;
         Ok(())
     }
+
     /// Uses **Pratt Parsing** with a mix of recursive/iterative structure
     /// and generates instructions based on an expression.
     /// Returns register idx of lhs or the register idx of the outer result
+    /// Heavily Inspired by:
+    /// https://matklad.github.io/2020/04/13/simple-but-powerful-pratt-parsing.html
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
@@ -197,25 +200,29 @@ impl Parser {
     }
 
     /// Assigns binding power to a given token assuming its an operator
-    /// Returns invert flag if invertation is desirable
+    /// Returns invert flag as true if invertation is desirable
     /// if it's not an operator, it function returns None
     fn infix_bp(&mut self) -> Option<(u8, u8, bool)> {
-        let bp = match &self.current.ttype {
-            TokenType::Eq => (2, 1, false),
+        let mut invert_flag = false;
+        let (lhs, rhs) = match &self.current.ttype {
+            TokenType::Eq => (2, 1),
 
-            TokenType::EqEq | TokenType::Lthen | TokenType::LthenEq | TokenType::BangEq => {
-                (3, 4, false)
-            }
+            TokenType::EqEq | TokenType::Lthen | TokenType::LthenEq | TokenType::BangEq => (3, 4),
 
             // a > b => b < a
-            TokenType::Gthen | TokenType::GthenEq => (3, 4, true),
+            TokenType::Gthen | TokenType::GthenEq => {
+                invert_flag = true;
+                (3, 4)
+            }
 
-            TokenType::Plus | TokenType::Minus => (5, 6, false),
+            TokenType::Plus | TokenType::Minus => (5, 6),
 
-            TokenType::Star | TokenType::Slash => (7, 8, false),
+            TokenType::Star | TokenType::Slash => (7, 8),
+
+            TokenType::Caret => (9, 10),
             _ => return None,
         };
-        Some(bp)
+        Some((lhs, rhs, invert_flag))
     }
 
     /// Returns a dummy for l_bp and a high precedence r_bp

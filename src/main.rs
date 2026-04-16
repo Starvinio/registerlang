@@ -20,6 +20,9 @@ fn main() {
     debug::quickres(debug::test_expr("(2 + 2) * 4", &mut vm));
     debug::quickres(debug::test_expr("(2 + 3 == 5) == true", &mut vm));
     debug::quickres(debug::test_expr("false == !true", &mut vm));
+    debug::quickres(debug::test_expr("999^0", &mut vm));
+    debug::quickres(debug::test_expr("0^999", &mut vm));
+    debug::quickres(debug::test_expr("1 + 2^10", &mut vm));
 
     process::exit(420); // debug exit
 
