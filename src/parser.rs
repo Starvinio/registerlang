@@ -94,7 +94,7 @@ impl Parser {
     /// adds a load instruction to the Chunk's bytecode and
     /// returns the register index of the added number as u8
     fn number(&mut self, span: Span) -> Result<u8, LangError> {
-        let number: f32 = match self.lexer.src[span.start()..span.end()].parse::<f32>() {
+        let number: f64 = match self.lexer.src[span.start()..span.end()].parse::<f64>() {
             Ok(f) => f,
             Err(_) => {
                 return Err(LangError::compile(
