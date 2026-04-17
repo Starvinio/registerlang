@@ -113,18 +113,19 @@ impl Parser {
         Ok(reg)
     }
 
-    fn boolean(&mut self, span: Span) -> u8 {
-        let val = match self.previous.ttype {
-            TokenType::True => true,
-            _ => false,
-        };
-        let const_idx = self.chunk.add_constant(Value::Bool(val));
-
+    fn boolean(&mut self, val: bool, span: Span) -> u8 {
         let reg = self.alloc_register();
         self.chunk.add_instruction(
-            Instruction::make_xy(OpCode::Load as u8, reg, const_idx),
+            Instruction::make_xy(OpCode::LoadBool as u8, reg, val as u16),
             span,
         );
+        reg
+    }
+
+    fn nil(&mut self, span: Span) -> u8 {
+        let reg = self.alloc_register();
+        self.chunk
+            .add_instruction(Instruction::make_x(OpCode::LoadNil as u8, reg), span);
         reg
     }
 
@@ -143,9 +144,9 @@ impl Parser {
     fn expression_bp(&mut self, min_bp: u8) -> Result<u8, LangError> {
         let mut lhs_reg = match self.previous.ttype {
             TokenType::Num => self.number(self.previous.tspan)?,
-            TokenType::True | TokenType::False | TokenType::NIL => {
-                self.boolean(self.previous.tspan)
-            }
+            TokenType::NIL => self.nil(self.previous.tspan),
+            TokenType::True => self.boolean(true, self.previous.tspan),
+            TokenType::False => self.boolean(false, self.previous.tspan),
             TokenType::LParen => {
                 let l_span = self.previous.tspan;
                 self.advance()?;
@@ -163,10 +164,7 @@ impl Parser {
                         ));
                     }
                 };
-                let opcode = match self.previous.ttype {
-                    TokenType::Minus => OpCode::Neg,
-                    _ => OpCode::Not, // Fine because we only have 2 prefix operators
-                };
+                let opcode = OpCode::un_op2opcode(&self.previous)?;
                 self.advance()?;
                 let rhs = self.expression_bp(r_bp)?;
                 self.unary_op(opcode, rhs, self.previous.tspan)
@@ -184,7 +182,7 @@ impl Parser {
 
             let expr_start = self.previous.tspan.start(); // stored for better debugging
 
-            let opcode = OpCode::op2opcode(&self.current)?;
+            let opcode = OpCode::bin_op2opcode(&self.current)?;
 
             // Advance twice to that prev = num and curr = op
             self.advance_twice()?;

@@ -3,7 +3,7 @@ use crate::{Instruction, Span, Value};
 pub struct Chunk {
     pub instructions: Vec<Instruction>, // OpCodes + Register Indices
     pub constants: Vec<Value>,          // Values loaded from source
-    pub ispan: Vec<Span>,               //
+    pub ispan: Vec<Span>,               // Span in proportion to instruction
 }
 impl Chunk {
     pub fn init() -> Self {

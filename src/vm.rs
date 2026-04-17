@@ -40,6 +40,8 @@ impl VM {
         let res = match OpCode::try_from(instr.opcode()) {
             Ok(OpCode::Return) => self.ret(chunk, instr.x())?,
             Ok(OpCode::Load) => self.load(chunk, instr.x(), instr.yz()),
+            Ok(OpCode::LoadBool) => self.load_bool(chunk, instr.x(), instr.y()),
+            Ok(OpCode::LoadNil) => self.load_nil(chunk, instr.x()),
             Ok(OpCode::Add) => self.add(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Sub) => self.sub(chunk, instr.x(), instr.y(), instr.z())?,
             Ok(OpCode::Mul) => self.mul(chunk, instr.x(), instr.y(), instr.z())?,
@@ -61,11 +63,11 @@ impl VM {
     }
 
     fn not(&mut self, chunk: &Chunk, dest: u8, a: u8) {
-        self.registers[dest as usize] = Value::Bool(self.registers[a as usize].val2not());
+        self.registers[dest as usize] = Value::Bool(self.registers[a as usize].invert_val());
     }
 
     fn neg(&mut self, chunk: &Chunk, dest: u8, a: u8) -> Result<(), LangError> {
-        self.registers[dest as usize] = match self.registers[a as usize].val2neg() {
+        self.registers[dest as usize] = match self.registers[a as usize].negate_val() {
             Ok(f) => Value::Num(f),
             Err(s) => return Err(self.err_from_string(chunk.get_span(self.ip), s)),
         };
@@ -95,6 +97,12 @@ impl VM {
     fn load(&mut self, chunk: &Chunk, dest: u8, idx: u16) {
         println!("Loading {:?}...", chunk.constants[idx as usize]);
         self.registers[dest as usize] = chunk.constants[idx as usize].clone();
+    }
+    fn load_bool(&mut self, chunk: &Chunk, dest: u8, val: u8) {
+        self.registers[dest as usize] = Value::Bool(val != 0);
+    }
+    fn load_nil(&mut self, chunk: &Chunk, dest: u8) {
+        self.registers[dest as usize] = Value::NIL;
     }
     fn add(&mut self, chunk: &Chunk, dest: u8, a: u8, b: u8) -> Result<(), LangError> {
         let result = self.registers[a as usize] + self.registers[b as usize];

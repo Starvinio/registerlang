@@ -11,6 +11,8 @@ use registerlang::{LangError, VM, debug};
 fn main() {
     let mut vm = VM::init();
 
+    debug::struct_sizes();
+
     debug::quickres(debug::test_expr("2 + 2", &mut vm));
     debug::quickres(debug::test_expr("2 + 2 * 2", &mut vm));
     debug::quickres(debug::test_expr("2 * 2 + 2", &mut vm));

@@ -7,25 +7,25 @@ pub enum Value {
     NIL,
 }
 impl Value {
-    pub fn val2num(&self) -> Result<f64, String> {
+    pub fn val_as_num(&self) -> Result<f64, String> {
         match self {
             Value::Num(f) => Ok(f.clone()),
             _ => Err(format!("Tried to parse {:?} into Number(f64)", self)),
         }
     }
-    pub fn val2bool(&self) -> Result<bool, String> {
+    pub fn val_as_bool(&self) -> Result<bool, String> {
         match self {
             Value::Bool(b) => Ok(b.clone()),
             _ => Err(format!("Tried to parse {:?} into Number(f64)", self)),
         }
     }
-    pub fn val2neg(&self) -> Result<f64, String> {
+    pub fn negate_val(&self) -> Result<f64, String> {
         match self {
             Value::Num(f) => Ok(-f.clone()),
             _ => Err(format!("Tried to negate value of type {:?}", self)),
         }
     }
-    pub fn val2not(&self) -> bool {
+    pub fn invert_val(&self) -> bool {
         match self {
             Value::Bool(f) if !f => true,
             Value::NIL => true,

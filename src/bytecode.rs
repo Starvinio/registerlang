@@ -68,6 +68,9 @@ impl Instruction {
     pub fn make_xx(opcode: u8, x: u8) -> Self {
         Instruction((opcode as u32) << 24 | (x as u32) << 16 | (x as u32) << 8)
     }
+    pub fn make_x(opcode: u8, x: u8) -> Self {
+        Instruction((opcode as u32) << 24 | (x as u32) << 16)
+    }
 }
 
 #[derive(Debug)]
@@ -75,16 +78,18 @@ impl Instruction {
 pub enum OpCode {
     Return = 0,
     Load = 1,
-    Add = 2,
-    Sub = 3,
-    Mul = 4,
-    Div = 5,
-    Pow = 6,
-    Neg = 7,
-    Not = 8,
-    Equal = 9,
-    Lthen = 10,
-    Lequal = 11,
+    LoadBool = 2,
+    LoadNil = 3,
+    Add = 4,
+    Sub = 5,
+    Mul = 6,
+    Div = 7,
+    Pow = 8,
+    Neg = 9,
+    Not = 10,
+    Equal = 11,
+    Lthen = 12,
+    Lequal = 13,
 }
 impl TryFrom<u8> for OpCode {
     type Error = u8;
@@ -93,36 +98,58 @@ impl TryFrom<u8> for OpCode {
         match byte {
             0 => Ok(OpCode::Return),
             1 => Ok(OpCode::Load),
-            2 => Ok(OpCode::Add),
-            3 => Ok(OpCode::Sub),
-            4 => Ok(OpCode::Mul),
-            5 => Ok(OpCode::Div),
-            6 => Ok(OpCode::Pow),
-            7 => Ok(OpCode::Neg),
-            8 => Ok(OpCode::Not),
-            9 => Ok(OpCode::Equal),
-            10 => Ok(OpCode::Lthen),
-            11 => Ok(OpCode::Lequal),
+            2 => Ok(OpCode::LoadBool),
+            3 => Ok(OpCode::LoadNil),
+            4 => Ok(OpCode::Add),
+            5 => Ok(OpCode::Sub),
+            6 => Ok(OpCode::Mul),
+            7 => Ok(OpCode::Div),
+            8 => Ok(OpCode::Pow),
+            9 => Ok(OpCode::Neg),
+            10 => Ok(OpCode::Not),
+            11 => Ok(OpCode::Equal),
+            12 => Ok(OpCode::Lthen),
+            13 => Ok(OpCode::Lequal),
             unknown => Err(unknown),
         }
     }
 }
 impl OpCode {
-    pub fn op2opcode(op: &LangToken) -> Result<Self, LangError> {
+    /// Converts unary operators to opcodes
+    pub fn un_op2opcode(op: &LangToken) -> Result<Self, LangError> {
+        let opcode = match op.ttype {
+            TokenType::Minus => OpCode::Neg,
+            TokenType::Bang => OpCode::Not,
+            _ => {
+                return Err(LangError::compile(
+                    op.tspan,
+                    format!(
+                        "Failed to convert unary operator '{}' to bytecode",
+                        op.ttype
+                    ),
+                ));
+            }
+        };
+        Ok(opcode)
+    }
+    /// Converts binary operators to opcodes
+    pub fn bin_op2opcode(op: &LangToken) -> Result<Self, LangError> {
         let opcode = match op.ttype {
             TokenType::Plus => OpCode::Add,
             TokenType::Minus => OpCode::Sub,
             TokenType::Star => OpCode::Mul,
             TokenType::Slash => OpCode::Div,
             TokenType::Caret => OpCode::Pow,
-            TokenType::Bang => OpCode::Not,
             TokenType::EqEq => OpCode::Equal,
             TokenType::Lthen | TokenType::Gthen => OpCode::Lthen,
             TokenType::LthenEq | TokenType::GthenEq => OpCode::Lequal,
             _ => {
                 return Err(LangError::compile(
                     op.tspan,
-                    format!("Failed to convert operator '{}' to bytecode", op.ttype),
+                    format!(
+                        "Failed to convert binary operator '{}' to bytecode",
+                        op.ttype
+                    ),
                 ));
             }
         };

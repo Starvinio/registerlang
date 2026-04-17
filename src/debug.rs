@@ -1,5 +1,5 @@
-use crate::{Chunk, LangError, Parser, VM};
-use std::process;
+use crate::{Chunk, Instruction, LangError, OpCode, Parser, VM, Value};
+use std::{mem, process};
 
 /// Used to call methods in main() without having to deal with errors seperately
 pub fn quickres(r: Result<(), LangError>) {
@@ -33,4 +33,11 @@ pub fn print_instr(chunk: &Chunk) {
     for instr in &chunk.instructions {
         println!("{instr}");
     }
+}
+
+pub fn struct_sizes() {
+    println!("Structure Sizes\n=================");
+    println!("Size of OpCode: {}", mem::size_of::<OpCode>());
+    println!("Size of Instruction: {}", mem::size_of::<Instruction>());
+    println!("Size of Value: {}", mem::size_of::<Value>());
 }
